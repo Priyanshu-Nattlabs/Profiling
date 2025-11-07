@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { submitProfile } from '../api';
 
-const ProfileForm = ({ onSuccess, onError }) => {
+const ProfileForm = ({ onSuccess }) => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -17,8 +16,6 @@ const ProfileForm = ({ onSuccess, onError }) => {
     softSkills: '',
   });
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -27,19 +24,10 @@ const ProfileForm = ({ onSuccess, onError }) => {
     }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    setIsSubmitting(true);
-
-    const result = await submitProfile(formData);
-
-    setIsSubmitting(false);
-
-    if (result.success) {
-      onSuccess(result.data);
-    } else {
-      onError(result.error);
-    }
+    // Just pass the form data to parent, don't submit to backend yet
+    onSuccess(formData);
   };
 
   return (
@@ -183,10 +171,9 @@ const ProfileForm = ({ onSuccess, onError }) => {
 
         <button
           type="submit"
-          disabled={isSubmitting}
-          className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400"
+          className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
         >
-          {isSubmitting ? 'Submitting...' : 'Submit'}
+          Next: Choose Template
         </button>
       </form>
     </div>
