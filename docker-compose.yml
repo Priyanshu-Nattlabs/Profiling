@@ -1,0 +1,56 @@
+services:
+  # MongoDB Service
+  mongodb:
+    image: mongo:7
+    container_name: profiling-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: profiling_db
+    volumes:
+      - mongodb_data:/data/db
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+      - profiling-network
+    restart: unless-stopped
+
+  # Backend Service (Spring Boot)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: profiling-backend
+    ports:
+      - "8080:8080"
+    environment:
+      MONGODB_URI: mongodb://mongodb:27017/profiling_db
+      MONGODB_DATABASE: profiling_db
+    depends_on:
+      - mongodb
+    networks:
+      - profiling-network
+    restart: unless-stopped
+
+  # Frontend Service (React + Nginx)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: http://localhost:8080
+    container_name: profiling-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - profiling-network
+    restart: unless-stopped
+
+volumes:
+  mongodb_data:
+
+networks:
+  profiling-network:
+    driver: bridge
+
