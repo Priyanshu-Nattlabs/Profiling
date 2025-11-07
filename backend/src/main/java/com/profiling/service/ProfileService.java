@@ -1,16 +1,17 @@
 package com.profiling.service;
 
 import com.profiling.model.Profile;
+import com.profiling.model.ProfileResponse;
 import java.util.Optional;
 
 public interface ProfileService {
     
     /**
-     * Save a profile to the database
+     * Save a profile to the database and generate template
      * @param profile The profile entity to save
-     * @return The saved profile with generated ID
+     * @return ProfileResponse containing the saved profile and generated template
      */
-    Profile saveProfile(Profile profile);
+    ProfileResponse saveProfile(Profile profile);
     
     /**
      * Retrieve a profile by its ID

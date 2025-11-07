@@ -21,6 +21,17 @@ public class Profile {
     private String achievements;
     private String technicalSkills;
     private String softSkills;
+    private String templateType; // professional, bio, story, cover
+
+    // Additional fields for cover letter template
+    private String hiringManagerName;
+    private String companyName;
+    private String companyAddress;
+    private String positionTitle;
+    private String relevantExperience;
+    private String keyAchievement;
+    private String strengths;
+    private String closingNote;
 
     // Default constructor
     public Profile() {
@@ -129,6 +140,78 @@ public class Profile {
 
     public void setSoftSkills(String softSkills) {
         this.softSkills = softSkills;
+    }
+
+    public String getTemplateType() {
+        return templateType;
+    }
+
+    public void setTemplateType(String templateType) {
+        this.templateType = templateType;
+    }
+
+    public String getHiringManagerName() {
+        return hiringManagerName;
+    }
+
+    public void setHiringManagerName(String hiringManagerName) {
+        this.hiringManagerName = hiringManagerName;
+    }
+
+    public String getCompanyName() {
+        return companyName;
+    }
+
+    public void setCompanyName(String companyName) {
+        this.companyName = companyName;
+    }
+
+    public String getCompanyAddress() {
+        return companyAddress;
+    }
+
+    public void setCompanyAddress(String companyAddress) {
+        this.companyAddress = companyAddress;
+    }
+
+    public String getPositionTitle() {
+        return positionTitle;
+    }
+
+    public void setPositionTitle(String positionTitle) {
+        this.positionTitle = positionTitle;
+    }
+
+    public String getRelevantExperience() {
+        return relevantExperience;
+    }
+
+    public void setRelevantExperience(String relevantExperience) {
+        this.relevantExperience = relevantExperience;
+    }
+
+    public String getKeyAchievement() {
+        return keyAchievement;
+    }
+
+    public void setKeyAchievement(String keyAchievement) {
+        this.keyAchievement = keyAchievement;
+    }
+
+    public String getStrengths() {
+        return strengths;
+    }
+
+    public void setStrengths(String strengths) {
+        this.strengths = strengths;
+    }
+
+    public String getClosingNote() {
+        return closingNote;
+    }
+
+    public void setClosingNote(String closingNote) {
+        this.closingNote = closingNote;
     }
 }
 
