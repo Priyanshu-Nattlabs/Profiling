@@ -11,12 +11,25 @@ const api = axios.create({
   },
 });
 
-// API function to submit profile
-export const submitProfile = async (profileData) => {
+// API function to submit profile with template type
+export const submitProfile = async (profileData, templateType = 'professional') => {
   try {
-    const response = await api.post('/api/profiles', profileData);
-    return { success: true, data: response.data };
+    const dataWithTemplate = {
+      ...profileData,
+      templateType: templateType
+    };
+    
+    const response = await api.post('/api/profiles', dataWithTemplate);
+    console.log('API response:', response);
+    console.log('API response data:', response.data);
+    
+    // Backend returns: { message: "...", data: { profile: {...}, templateText: "..." } }
+    // Extract the actual profile data from the nested structure
+    const actualData = response.data.data || response.data;
+    
+    return { success: true, data: actualData };
   } catch (error) {
+    console.error('API error:', error);
     return {
       success: false,
       error: error.response?.data?.message || error.message || 'Failed to submit profile',

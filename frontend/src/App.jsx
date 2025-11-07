@@ -1,27 +1,82 @@
 import React, { useState } from 'react';
 import StartButton from './components/StartButton';
 import ProfileForm from './components/ProfileForm';
+import TemplateSelection from './components/TemplateSelection';
+import CoverLetterForm from './components/CoverLetterForm';
 import ProfileDisplay from './components/ProfileDisplay';
+import { submitProfile } from './api';
 
 function App() {
-  const [currentView, setCurrentView] = useState('start'); // 'start', 'form', 'display'
+  const [currentView, setCurrentView] = useState('start'); // 'start', 'form', 'template', 'cover', 'display'
+  const [formData, setFormData] = useState(null);
   const [profileData, setProfileData] = useState(null);
   const [error, setError] = useState(null);
 
   const handleStart = () => {
     setCurrentView('form');
     setError(null);
+    setFormData(null);
     setProfileData(null);
   };
 
   const handleFormSuccess = (data) => {
-    setProfileData(data);
-    setCurrentView('display');
+    setFormData(data);
+    setCurrentView('template');
     setError(null);
   };
 
-  const handleFormError = (errorMessage) => {
-    setError(errorMessage);
+  const handleTemplateSelect = async (templateType) => {
+    if (!formData) {
+      setError('Profile details are missing. Please complete the form again.');
+      setCurrentView('form');
+      return;
+    }
+
+    if (templateType === 'cover') {
+      setCurrentView('cover');
+      return;
+    }
+
+    // Submit to backend with selected template type
+    const result = await submitProfile(formData, templateType);
+    
+    if (result.success) {
+      setProfileData(result.data);
+      setCurrentView('display');
+      setError(null);
+    } else {
+      setError(result.error);
+      setCurrentView('template');
+    }
+  };
+
+  const handleCoverSubmit = async (coverDetails) => {
+    if (!formData) {
+      setError('Profile details are missing. Please complete the form again.');
+      setCurrentView('form');
+      return;
+    }
+
+    const combinedData = {
+      ...formData,
+      ...coverDetails
+    };
+
+    const result = await submitProfile(combinedData, 'cover');
+
+    if (result.success) {
+      setProfileData(result.data);
+      setCurrentView('display');
+      setError(null);
+    } else {
+      setError(result.error);
+      setCurrentView('cover');
+    }
+  };
+
+  const handleBackToTemplates = () => {
+    setError(null);
+    setCurrentView('template');
   };
 
   return (
@@ -35,7 +90,32 @@ function App() {
               Error: {error}
             </div>
           )}
-          <ProfileForm onSuccess={handleFormSuccess} onError={handleFormError} />
+          <ProfileForm onSuccess={handleFormSuccess} />
+        </div>
+      )}
+      
+      {currentView === 'template' && (
+        <div>
+          {error && (
+            <div className="max-w-4xl mx-auto p-4 mt-4 bg-red-100 border border-red-400 text-red-700 rounded">
+              Error: {error}
+            </div>
+          )}
+          <TemplateSelection
+            onTemplateSelect={handleTemplateSelect}
+            onCoverLetterSelect={() => handleTemplateSelect('cover')}
+          />
+        </div>
+      )}
+
+      {currentView === 'cover' && (
+        <div>
+          {error && (
+            <div className="max-w-2xl mx-auto p-4 mt-4 bg-red-100 border border-red-400 text-red-700 rounded">
+              Error: {error}
+            </div>
+          )}
+          <CoverLetterForm onSubmit={handleCoverSubmit} onBack={handleBackToTemplates} />
         </div>
       )}
       

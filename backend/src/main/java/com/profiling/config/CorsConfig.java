@@ -19,7 +19,7 @@ public class CorsConfig {
         config.addAllowedOriginPattern("*");
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
-        config.setAllowCredentials(true);
+        // Removed setAllowCredentials(true) because it conflicts with wildcard origins
         
         source.registerCorsConfiguration("/api/**", config);
         return new CorsFilter(source);
