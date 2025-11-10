@@ -1,10 +1,13 @@
 package com.profiling.service;
 
+import com.profiling.dto.ProfileRequestDTO;
 import com.profiling.model.Profile;
 import com.profiling.model.ProfileResponse;
 import com.profiling.repository.ProfileRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 import java.util.Optional;
 
@@ -198,6 +201,87 @@ public class ProfileServiceImpl implements ProfileService {
         // TODO: Add business logic for profile retrieval (e.g., access control, caching)
         // TODO: Add logging for profile retrieval
         return profileRepository.findById(id);
+    }
+
+    @Override
+    public String generateTemplate(Profile profile) {
+        return generateProfileTemplate(profile);
+    }
+
+    @Override
+    public Profile updateProfile(String id, ProfileRequestDTO dto) {
+        Profile existingProfile = profileRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profile not found"));
+
+        applyUpdates(existingProfile, dto);
+
+        return profileRepository.save(existingProfile);
+    }
+
+    private void applyUpdates(Profile profile, ProfileRequestDTO dto) {
+        if (dto.getName() != null) {
+            profile.setName(dto.getName());
+        }
+        if (dto.getEmail() != null) {
+            profile.setEmail(dto.getEmail());
+        }
+        if (dto.getDob() != null) {
+            profile.setDob(dto.getDob());
+        }
+        if (dto.getLinkedin() != null) {
+            profile.setLinkedin(dto.getLinkedin());
+        }
+        if (dto.getInstitute() != null) {
+            profile.setInstitute(dto.getInstitute());
+        }
+        if (dto.getCurrentDegree() != null) {
+            profile.setCurrentDegree(dto.getCurrentDegree());
+        }
+        if (dto.getBranch() != null) {
+            profile.setBranch(dto.getBranch());
+        }
+        if (dto.getYearOfStudy() != null) {
+            profile.setYearOfStudy(dto.getYearOfStudy());
+        }
+        if (dto.getCertifications() != null) {
+            profile.setCertifications(dto.getCertifications());
+        }
+        if (dto.getAchievements() != null) {
+            profile.setAchievements(dto.getAchievements());
+        }
+        if (dto.getTechnicalSkills() != null) {
+            profile.setTechnicalSkills(dto.getTechnicalSkills());
+        }
+        if (dto.getSoftSkills() != null) {
+            profile.setSoftSkills(dto.getSoftSkills());
+        }
+        if (dto.getTemplateType() != null) {
+            profile.setTemplateType(dto.getTemplateType());
+        }
+        if (dto.getHiringManagerName() != null) {
+            profile.setHiringManagerName(dto.getHiringManagerName());
+        }
+        if (dto.getCompanyName() != null) {
+            profile.setCompanyName(dto.getCompanyName());
+        }
+        if (dto.getCompanyAddress() != null) {
+            profile.setCompanyAddress(dto.getCompanyAddress());
+        }
+        if (dto.getPositionTitle() != null) {
+            profile.setPositionTitle(dto.getPositionTitle());
+        }
+        if (dto.getRelevantExperience() != null) {
+            profile.setRelevantExperience(dto.getRelevantExperience());
+        }
+        if (dto.getKeyAchievement() != null) {
+            profile.setKeyAchievement(dto.getKeyAchievement());
+        }
+        if (dto.getStrengths() != null) {
+            profile.setStrengths(dto.getStrengths());
+        }
+        if (dto.getClosingNote() != null) {
+            profile.setClosingNote(dto.getClosingNote());
+        }
     }
 }
 
