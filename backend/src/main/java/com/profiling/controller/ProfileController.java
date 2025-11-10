@@ -1,10 +1,13 @@
 package com.profiling.controller;
 
 import com.profiling.dto.ApiResponse;
+import com.profiling.dto.ProfileRequestDTO;
 import com.profiling.model.Profile;
 import com.profiling.model.ProfileResponse;
+import com.profiling.service.PDFService;
 import com.profiling.service.ProfileService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -18,10 +21,12 @@ import java.util.Optional;
 public class ProfileController {
 
     private final ProfileService profileService;
+    private final PDFService pdfService;
 
     @Autowired
-    public ProfileController(ProfileService profileService) {
+    public ProfileController(ProfileService profileService, PDFService pdfService) {
         this.profileService = profileService;
+        this.pdfService = pdfService;
     }
 
     /**
@@ -57,6 +62,42 @@ public class ProfileController {
         } else {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
+    }
+
+    @GetMapping(value = "/{id}/download", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> downloadProfile(@PathVariable String id) {
+        Optional<Profile> profileOptional = profileService.getProfileById(id);
+
+        if (profileOptional.isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
+        Profile profile = profileOptional.get();
+        String templateText = profileService.generateTemplate(profile);
+        byte[] pdfBytes = pdfService.generateProfilePDF(profile, templateText);
+
+        return ResponseEntity
+                .ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(
+                        "Content-Disposition",
+                        ContentDisposition.attachment().filename("profile.pdf").build().toString()
+                )
+                .body(pdfBytes);
+    }
+
+    @PutMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<ApiResponse> updateProfile(@PathVariable String id,
+                                                     @RequestBody ProfileRequestDTO requestDTO) {
+        Profile updatedProfile = profileService.updateProfile(id, requestDTO);
+        String templateText = profileService.generateTemplate(updatedProfile);
+        ProfileResponse responseData = new ProfileResponse(updatedProfile, templateText);
+
+        ApiResponse response = new ApiResponse("Profile updated successfully", responseData);
+        return ResponseEntity
+                .ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(response);
     }
 }
 
