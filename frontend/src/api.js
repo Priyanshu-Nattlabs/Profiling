@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Get API URL from environment variable or use relative path for production
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+// Get API URL from environment variable or use default
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 // Create axios instance with base configuration
 const api = axios.create({
@@ -34,6 +34,16 @@ export const submitProfile = async (profileData, templateType = 'professional') 
       success: false,
       error: error.response?.data?.message || error.message || 'Failed to submit profile',
     };
+  }
+};
+
+export const fetchTemplates = async () => {
+  try {
+    const response = await api.get('/api/templates');
+    return response.data;
+  } catch (error) {
+    console.error('Failed to fetch templates:', error);
+    throw error;
   }
 };
 

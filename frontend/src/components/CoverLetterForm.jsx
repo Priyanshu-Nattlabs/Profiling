@@ -39,7 +39,7 @@ const CoverLetterForm = ({ onSubmit, onBack }) => {
             value={formValues.hiringManagerName}
             onChange={handleChange}
             className="w-full px-3 py-2 border rounded"
-            placeholder="e.g., Ms. Ananya Singh"
+            placeholder="e.g., Priyanshu Pandey"
           />
         </div>
 
@@ -65,7 +65,7 @@ const CoverLetterForm = ({ onSubmit, onBack }) => {
             onChange={handleChange}
             required
             className="w-full px-3 py-2 border rounded"
-            placeholder="e.g., Tower 5, Cyber City, Gurugram"
+            placeholder="e.g., Tower 5, Electronic City, Banglore"
           />
         </div>
 
@@ -78,7 +78,7 @@ const CoverLetterForm = ({ onSubmit, onBack }) => {
             onChange={handleChange}
             required
             className="w-full px-3 py-2 border rounded"
-            placeholder="e.g., Product Management Intern"
+            placeholder="e.g.,Junior Developer "
           />
         </div>
 

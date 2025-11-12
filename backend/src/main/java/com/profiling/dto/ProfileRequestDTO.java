@@ -23,6 +23,10 @@ public class ProfileRequestDTO {
     private String keyAchievement;
     private String strengths;
     private String closingNote;
+    private Boolean hasInternship;
+    private String internshipDetails;
+    private Boolean hasExperience;
+    private String experienceDetails;
 
     public String getName() {
         return name;
@@ -190,6 +194,38 @@ public class ProfileRequestDTO {
 
     public void setClosingNote(String closingNote) {
         this.closingNote = closingNote;
+    }
+
+    public Boolean getHasInternship() {
+        return hasInternship;
+    }
+
+    public void setHasInternship(Boolean hasInternship) {
+        this.hasInternship = hasInternship;
+    }
+
+    public String getInternshipDetails() {
+        return internshipDetails;
+    }
+
+    public void setInternshipDetails(String internshipDetails) {
+        this.internshipDetails = internshipDetails;
+    }
+
+    public Boolean getHasExperience() {
+        return hasExperience;
+    }
+
+    public void setHasExperience(Boolean hasExperience) {
+        this.hasExperience = hasExperience;
+    }
+
+    public String getExperienceDetails() {
+        return experienceDetails;
+    }
+
+    public void setExperienceDetails(String experienceDetails) {
+        this.experienceDetails = experienceDetails;
     }
 }
 

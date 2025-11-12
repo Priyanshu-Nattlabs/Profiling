@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 
+import { fetchTemplates } from '../api';
+
 const emptyProfile = {
   name: '',
   email: '',
@@ -23,13 +25,20 @@ const emptyProfile = {
   keyAchievement: '',
   strengths: '',
   closingNote: '',
+  hasInternship: false,
+  internshipDetails: '',
+  hasExperience: false,
+  experienceDetails: '',
 };
 
-const templateOptions = [
+const defaultTemplateOptions = [
   { value: 'professional', label: 'Professional' },
   { value: 'bio', label: 'Bio' },
   { value: 'story', label: 'Story' },
-  { value: 'cover', label: 'Cover Letter' },
+  { value: 'industry', label: 'Industry Ready' },
+  { value: 'modern-professional', label: 'Modern Professional' },
+  { value: 'executive', label: 'Executive Professional Template' },
+  { value: 'cover', label: 'Cover Letter' }
 ];
 
 const ProfileDisplay = ({ profileData }) => {
@@ -37,10 +46,44 @@ const ProfileDisplay = ({ profileData }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [formValues, setFormValues] = useState(emptyProfile);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [templateOptions, setTemplateOptions] = useState(defaultTemplateOptions);
+  const [downloadError, setDownloadError] = useState(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     setCurrentProfileData(profileData);
   }, [profileData]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadTemplates = async () => {
+      try {
+        const templates = await fetchTemplates();
+        if (!isMounted) {
+          return;
+        }
+        if (Array.isArray(templates)) {
+          const normalized = templates.map((template) => ({
+            value: template.id,
+            label: template.name || template.id
+          }));
+          setTemplateOptions(normalized);
+        }
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+        setTemplateOptions(defaultTemplateOptions);
+      }
+    };
+
+    loadTemplates();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const profile = useMemo(() => {
     if (!currentProfileData) {
@@ -73,6 +116,10 @@ const ProfileDisplay = ({ profileData }) => {
         keyAchievement: profile.keyAchievement || '',
         strengths: profile.strengths || '',
         closingNote: profile.closingNote || '',
+        hasInternship: Boolean(profile.hasInternship),
+        internshipDetails: profile.internshipDetails || '',
+        hasExperience: Boolean(profile.hasExperience),
+        experienceDetails: profile.experienceDetails || '',
       });
     }
   }, [isEditing, profile]);
@@ -82,20 +129,35 @@ const ProfileDisplay = ({ profileData }) => {
   }
 
   const templateText = currentProfileData?.templateText;
+  const templateCss = currentProfileData?.templateCss || '';
+  const templateName = currentProfileData?.templateName;
+  const templateIcon = currentProfileData?.templateIcon;
+  const templateDescription = currentProfileData?.templateDescription;
   const templateType = profile?.templateType || currentProfileData?.templateType;
   const profileId = profile?.id || currentProfileData?.id;
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
   const handleDownload = async () => {
     if (!profileId) {
-      console.error('Profile ID is required to download PDF');
+      setDownloadError('Profile ID is required to download PDF');
       return;
     }
 
     try {
+      setIsDownloading(true);
+      setDownloadError(null);
+      
       const response = await axios.get(`${apiBaseUrl}/api/profiles/${profileId}/download`, {
         responseType: 'blob',
       });
+
+      // Check if the response is actually a PDF by checking content type header
+      const contentType = response.headers['content-type'] || response.headers['Content-Type'] || '';
+      if (contentType && !contentType.includes('pdf') && !contentType.includes('application/pdf')) {
+        // If not a PDF, try to read as text to see the error message
+        const text = await response.data.text();
+        throw new Error(text || 'Server returned an error');
+      }
 
       const blob = new Blob([response.data], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
@@ -106,8 +168,33 @@ const ProfileDisplay = ({ profileData }) => {
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
+      
+      // Clear any previous errors on success
+      setDownloadError(null);
     } catch (error) {
       console.error('Error downloading profile PDF:', error);
+      let errorMessage = 'Failed to download PDF. ';
+      
+      if (error.response) {
+        // Server responded with error status
+        if (error.response.status === 404) {
+          errorMessage += 'Profile not found.';
+        } else if (error.response.status === 500) {
+          errorMessage += 'Server error. Please try again later.';
+        } else {
+          errorMessage += `Server error (${error.response.status}).`;
+        }
+      } else if (error.request) {
+        // Request was made but no response received
+        errorMessage += 'Unable to connect to server. Please check your connection.';
+      } else {
+        // Something else happened
+        errorMessage += error.message || 'An unexpected error occurred.';
+      }
+      
+      setDownloadError(errorMessage);
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -120,7 +207,17 @@ const ProfileDisplay = ({ profileData }) => {
   };
 
   const handleInputChange = (event) => {
-    const { name, value } = event.target;
+    const { name, value, type, checked } = event.target;
+    if (type === 'checkbox') {
+      setFormValues((prev) => ({
+        ...prev,
+        [name]: checked,
+        ...(name === 'hasInternship' && !checked ? { internshipDetails: '' } : {}),
+        ...(name === 'hasExperience' && !checked ? { experienceDetails: '' } : {}),
+      }));
+      return;
+    }
+
     setFormValues((prev) => ({
       ...prev,
       [name]: value,
@@ -154,12 +251,38 @@ const ProfileDisplay = ({ profileData }) => {
     ? 'Cover Letter'
     : 'Profile Details';
 
+  useEffect(() => {
+    if (!templateCss) {
+      return undefined;
+    }
+
+    const styleElement = document.createElement('style');
+    styleElement.setAttribute('data-template-css', 'profile-display');
+    styleElement.innerHTML = templateCss;
+    document.head.appendChild(styleElement);
+
+    return () => {
+      document.head.removeChild(styleElement);
+    };
+  }, [templateCss]);
+
   return (
     <div className="max-w-3xl mx-auto p-6">
       <h2 className="text-2xl font-bold mb-6">{heading}</h2>
 
       {templateText && (
-        <div className="mb-6 p-4 border">
+        <div className="mb-6 p-4 border rounded bg-white shadow-sm">
+          {(templateIcon || templateName) && (
+            <div className="flex items-center gap-3 mb-3">
+              {templateIcon && <span className="text-3xl">{templateIcon}</span>}
+              <div>
+                {templateName && <h3 className="text-lg font-semibold">{templateName}</h3>}
+                {templateDescription && (
+                  <p className="text-sm text-gray-600">{templateDescription}</p>
+                )}
+              </div>
+            </div>
+          )}
           <p className="whitespace-pre-line">{templateText}</p>
         </div>
       )}
@@ -170,23 +293,30 @@ const ProfileDisplay = ({ profileData }) => {
         </div>
       )}
 
-      <div className="flex items-center gap-4">
-        <button
-          type="button"
-          onClick={handleDownload}
-          className="px-4 py-2 bg-blue-600 text-white rounded"
-          disabled={!profileId}
-        >
-          Download Profile (PDF)
-        </button>
-        <button
-          type="button"
-          onClick={handleEditClick}
-          className="px-4 py-2 bg-gray-700 text-white rounded"
-          disabled={!profileId}
-        >
-          Edit Profile
-        </button>
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={handleDownload}
+            className="px-4 py-2 bg-blue-600 text-white rounded disabled:bg-gray-400 disabled:cursor-not-allowed"
+            disabled={!profileId || isDownloading}
+          >
+            {isDownloading ? 'Downloading...' : 'Download Profile (PDF)'}
+          </button>
+          <button
+            type="button"
+            onClick={handleEditClick}
+            className="px-4 py-2 bg-gray-700 text-white rounded"
+            disabled={!profileId}
+          >
+            Edit Profile
+          </button>
+        </div>
+        {downloadError && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
+            {downloadError}
+          </div>
+        )}
       </div>
 
       {isEditing && (
@@ -256,6 +386,7 @@ const ProfileDisplay = ({ profileData }) => {
                     name="institute"
                     value={formValues.institute}
                     onChange={handleInputChange}
+                    required
                     className="w-full border rounded px-3 py-2"
                   />
                 </label>
@@ -267,6 +398,7 @@ const ProfileDisplay = ({ profileData }) => {
                     name="currentDegree"
                     value={formValues.currentDegree}
                     onChange={handleInputChange}
+                    required
                     className="w-full border rounded px-3 py-2"
                   />
                 </label>
@@ -278,6 +410,7 @@ const ProfileDisplay = ({ profileData }) => {
                     name="branch"
                     value={formValues.branch}
                     onChange={handleInputChange}
+                    required
                     className="w-full border rounded px-3 py-2"
                   />
                 </label>
@@ -289,6 +422,7 @@ const ProfileDisplay = ({ profileData }) => {
                     name="yearOfStudy"
                     value={formValues.yearOfStudy}
                     onChange={handleInputChange}
+                    required
                     className="w-full border rounded px-3 py-2"
                   />
                 </label>
@@ -321,6 +455,7 @@ const ProfileDisplay = ({ profileData }) => {
                     name="technicalSkills"
                     value={formValues.technicalSkills}
                     onChange={handleInputChange}
+                    required
                     className="w-full border rounded px-3 py-2"
                     rows={2}
                   />
@@ -332,6 +467,7 @@ const ProfileDisplay = ({ profileData }) => {
                     name="softSkills"
                     value={formValues.softSkills}
                     onChange={handleInputChange}
+                    required
                     className="w-full border rounded px-3 py-2"
                     rows={2}
                   />
@@ -440,6 +576,54 @@ const ProfileDisplay = ({ profileData }) => {
                     rows={2}
                   />
                 </label>
+
+                <div className="flex flex-col gap-2 md:col-span-2">
+                  <label className="flex items-center gap-2 text-sm font-medium">
+                    <input
+                      type="checkbox"
+                      name="hasInternship"
+                      checked={formValues.hasInternship}
+                      onChange={handleInputChange}
+                      className="h-4 w-4"
+                    />
+                    <span>Completed Internship</span>
+                  </label>
+                  {formValues.hasInternship && (
+                    <textarea
+                      name="internshipDetails"
+                      value={formValues.internshipDetails}
+                      onChange={handleInputChange}
+                      className="w-full border rounded px-3 py-2"
+                      rows={2}
+                      required={formValues.hasInternship}
+                      placeholder="Share internship projects, roles, or key takeaways"
+                    />
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-2 md:col-span-2">
+                  <label className="flex items-center gap-2 text-sm font-medium">
+                    <input
+                      type="checkbox"
+                      name="hasExperience"
+                      checked={formValues.hasExperience}
+                      onChange={handleInputChange}
+                      className="h-4 w-4"
+                    />
+                    <span>Professional Experience</span>
+                  </label>
+                  {formValues.hasExperience && (
+                    <textarea
+                      name="experienceDetails"
+                      value={formValues.experienceDetails}
+                      onChange={handleInputChange}
+                      className="w-full border rounded px-3 py-2"
+                      rows={2}
+                      required={formValues.hasExperience}
+                      placeholder="Mention organisations, roles, and key contributions"
+                    />
+                  )}
+                </div>
               </div>
 
               <div className="flex justify-end gap-3 pt-4">

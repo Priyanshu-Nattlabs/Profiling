@@ -3,7 +3,10 @@ package com.profiling.service;
 import com.profiling.model.Profile;
 import com.profiling.model.ProfileResponse;
 import com.profiling.dto.ProfileRequestDTO;
+import java.util.List;
 import java.util.Optional;
+
+import com.profiling.template.TemplateRenderResult;
 
 public interface ProfileService {
     
@@ -22,11 +25,17 @@ public interface ProfileService {
     Optional<Profile> getProfileById(String id);
 
     /**
-     * Generate the template paragraph for a given profile
-     * @param profile The profile to use for template generation
-     * @return Generated template text
+     * Retrieve all profiles
+     * @return List containing every profile
      */
-    String generateTemplate(Profile profile);
+    List<Profile> getAllProfiles();
+
+    /**
+     * Generate the template details for a given profile.
+     * @param profile The profile to use for template generation
+     * @return Rendered template result containing text and metadata
+     */
+    TemplateRenderResult generateTemplate(Profile profile);
 
     /**
      * Update profile fields for a given profile id

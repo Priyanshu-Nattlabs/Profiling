@@ -14,10 +14,24 @@ const ProfileForm = ({ onSuccess }) => {
     achievements: '',
     technicalSkills: '',
     softSkills: '',
+    hasInternship: false,
+    internshipDetails: '',
+    hasExperience: false,
+    experienceDetails: '',
   });
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
+    if (type === 'checkbox') {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: checked,
+        ...(name === 'hasInternship' && !checked ? { internshipDetails: '' } : {}),
+        ...(name === 'hasExperience' && !checked ? { experienceDetails: '' } : {}),
+      }));
+      return;
+    }
+
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -88,6 +102,7 @@ const ProfileForm = ({ onSuccess }) => {
             name="institute"
             value={formData.institute}
             onChange={handleChange}
+            required
             className="w-full px-3 py-2 border rounded"
           />
         </div>
@@ -99,6 +114,7 @@ const ProfileForm = ({ onSuccess }) => {
             name="currentDegree"
             value={formData.currentDegree}
             onChange={handleChange}
+            required
             className="w-full px-3 py-2 border rounded"
           />
         </div>
@@ -110,6 +126,7 @@ const ProfileForm = ({ onSuccess }) => {
             name="branch"
             value={formData.branch}
             onChange={handleChange}
+            required
             className="w-full px-3 py-2 border rounded"
           />
         </div>
@@ -121,6 +138,7 @@ const ProfileForm = ({ onSuccess }) => {
             name="yearOfStudy"
             value={formData.yearOfStudy}
             onChange={handleChange}
+            required
             className="w-full px-3 py-2 border rounded"
           />
         </div>
@@ -154,6 +172,7 @@ const ProfileForm = ({ onSuccess }) => {
             value={formData.technicalSkills}
             onChange={handleChange}
             rows="3"
+            required
             className="w-full px-3 py-2 border rounded"
           />
         </div>
@@ -165,8 +184,57 @@ const ProfileForm = ({ onSuccess }) => {
             value={formData.softSkills}
             onChange={handleChange}
             rows="3"
+            required
             className="w-full px-3 py-2 border rounded"
           />
+        </div>
+
+        <div>
+          <label className="flex items-center gap-2 mb-2">
+            <input
+              type="checkbox"
+              name="hasInternship"
+              checked={formData.hasInternship}
+              onChange={handleChange}
+              className="h-4 w-4"
+            />
+            <span>Have you completed an internship?</span>
+          </label>
+          {formData.hasInternship && (
+            <textarea
+              name="internshipDetails"
+              value={formData.internshipDetails}
+              onChange={handleChange}
+              rows="3"
+              required={formData.hasInternship}
+              placeholder="Provide brief details about your internship experience"
+              className="w-full px-3 py-2 border rounded"
+            />
+          )}
+        </div>
+
+        <div>
+          <label className="flex items-center gap-2 mb-2">
+            <input
+              type="checkbox"
+              name="hasExperience"
+              checked={formData.hasExperience}
+              onChange={handleChange}
+              className="h-4 w-4"
+            />
+            <span>Do you have professional experience?</span>
+          </label>
+          {formData.hasExperience && (
+            <textarea
+              name="experienceDetails"
+              value={formData.experienceDetails}
+              onChange={handleChange}
+              rows="3"
+              required={formData.hasExperience}
+              placeholder="Share key highlights from your professional experience"
+              className="w-full px-3 py-2 border rounded"
+            />
+          )}
         </div>
 
         <button

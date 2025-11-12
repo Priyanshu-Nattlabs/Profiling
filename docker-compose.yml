@@ -13,11 +13,6 @@ services:
     networks:
       - profiling-network
     restart: unless-stopped
-    healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/profiling_db --quiet
-      interval: 30s
-      timeout: 10s
-      retries: 5
 
   # Backend Service (Spring Boot)
   backend:
@@ -31,8 +26,7 @@ services:
       MONGODB_URI: mongodb://mongodb:27017/profiling_db
       MONGODB_DATABASE: profiling_db
     depends_on:
-      mongodb:
-        condition: service_healthy
+      - mongodb
     networks:
       - profiling-network
     restart: unless-stopped
