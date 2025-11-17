@@ -19,29 +19,146 @@ public class TemplateDataInitializer implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         Instant now = Instant.now();
+        String defaultCss = getDefaultCss();
         List<TemplateEntity> defaults = List.of(
                 new TemplateEntity("professional", "Professional", "Extremely professional with fluent English",
-                        "\uD83D\uDCBC", professionalTemplate(), "", now, now),
-                new TemplateEntity("bio", "Bio", "Casual and friendly bio style", "\u2728", bioTemplate(), "", now,
+                        "\uD83D\uDCBC", professionalTemplate(), defaultCss, now, now),
+                new TemplateEntity("bio", "Bio", "Casual and friendly bio style", "\u2728", bioTemplate(), defaultCss, now,
                         now),
                 new TemplateEntity("story", "Story", "Simple story-like narrative", "\uD83D\uDCD6", storyTemplate(),
-                        "", now, now),
+                        defaultCss, now, now),
                 new TemplateEntity("cover", "Cover Letter",
                         "Generate a tailored cover letter after providing company details", "\u2709\uFE0F",
-                        coverLetterTemplate(), "", now, now),
+                        coverLetterTemplate(), defaultCss, now, now),
                 new TemplateEntity("modern-professional", "Modern Professional",
                         "Ambitious tone with modern professional presence", "\uD83E\uDDD1\u200D\uD83D\uDCBC",
-                        modernProfessionalTemplate(), "", now, now),
+                        modernProfessionalTemplate(), defaultCss, now, now),
                 new TemplateEntity("industry", "Industry Ready",
                         "Balanced, employer-facing tone with practical highlights", "\uD83C\uDFED",
-                        industryTemplate(), "", now, now),
+                        industryTemplate(), defaultCss, now, now),
                 new TemplateEntity("executive", "Executive Professional Template",
                         "A confident and achievement-oriented profile template highlighting education, skills, and professional goals.", "\uD83C\uDFC6",
-                        executiveTemplate(), "", now, now));
+                        executiveTemplate(), defaultCss, now, now));
+        for (TemplateEntity template : defaults) {
+            if (!templateRepository.existsById(template.getId())) {
+                templateRepository.save(template);
+            } else {
+                // Update existing template with default CSS (user can customize later via API)
+                TemplateEntity existing = templateRepository.findById(template.getId()).orElse(null);
+                if (existing != null) {
+                    // Only update if CSS is empty or null to preserve any custom CSS
+                    if (existing.getCss() == null || existing.getCss().trim().isEmpty()) {
+                        existing.setCss(defaultCss);
+                        existing.setUpdatedAt(Instant.now());
+                        templateRepository.save(existing);
+                    }
+                }
+            }
+        }
+    }
 
-        defaults.stream()
-                .filter(template -> !templateRepository.existsById(template.getId()))
-                .forEach(templateRepository::save);
+    private String getDefaultCss() {
+        return """
+                /* Overall container */
+                .profile-container {
+                  max-width: 800px;
+                  margin: 40px auto;
+                  padding: 20px;
+                  font-family: 'Inter', 'Poppins', sans-serif;
+                  color: #1a1a1a;
+                }
+
+                /* Title */
+                .profile-container h2 {
+                  font-size: 2rem;
+                  font-weight: 700;
+                  color: #222;
+                  margin-bottom: 24px;
+                  text-align: center;
+                  letter-spacing: 0.5px;
+                }
+
+                /* Profile card */
+                .profile-card {
+                  background: #ffffff;
+                  border-radius: 16px;
+                  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+                  padding: 30px 35px;
+                  line-height: 1.8;
+                  font-size: 1rem;
+                  transition: all 0.3s ease;
+                }
+
+                .profile-card:hover {
+                  transform: translateY(-4px);
+                  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+                }
+
+                /* Profile title inside card */
+                .profile-card h3 {
+                  font-weight: 600;
+                  color: #2c3e50;
+                  margin-bottom: 16px;
+                }
+
+                /* Paragraph text */
+                .profile-card p {
+                  text-align: justify;
+                  color: #444;
+                }
+
+                /* Buttons section */
+                .profile-actions {
+                  margin-top: 30px;
+                  display: flex;
+                  justify-content: center;
+                  gap: 20px;
+                }
+
+                /* Common button style */
+                .profile-btn {
+                  padding: 12px 20px;
+                  border: none;
+                  border-radius: 8px;
+                  font-weight: 600;
+                  cursor: pointer;
+                  transition: all 0.3s ease;
+                  font-size: 0.95rem;
+                }
+
+                /* Specific buttons */
+                .btn-pdf {
+                  background-color: #2563eb;
+                  color: white;
+                }
+
+                .btn-json {
+                  background-color: #16a34a;
+                  color: white;
+                }
+
+                .btn-edit {
+                  background-color: #374151;
+                  color: white;
+                }
+
+                /* Hover effects */
+                .profile-btn:hover {
+                  transform: translateY(-2px);
+                  opacity: 0.9;
+                }
+
+                /* Responsive */
+                @media (max-width: 600px) {
+                  .profile-card {
+                    padding: 20px;
+                  }
+                  .profile-actions {
+                    flex-direction: column;
+                    gap: 12px;
+                  }
+                }
+                """;
     }
 
     private String professionalTemplate() {

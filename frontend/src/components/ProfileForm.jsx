@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
-const ProfileForm = ({ onSuccess }) => {
+const ProfileForm = ({ onSuccess, onBack, initialData }) => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -19,6 +19,29 @@ const ProfileForm = ({ onSuccess }) => {
     hasExperience: false,
     experienceDetails: '',
   });
+
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        name: initialData.name || '',
+        email: initialData.email || '',
+        dob: initialData.dob || '',
+        linkedin: initialData.linkedin || '',
+        institute: initialData.institute || '',
+        currentDegree: initialData.currentDegree || '',
+        branch: initialData.branch || '',
+        yearOfStudy: initialData.yearOfStudy || '',
+        certifications: initialData.certifications || '',
+        achievements: initialData.achievements || '',
+        technicalSkills: initialData.technicalSkills || '',
+        softSkills: initialData.softSkills || '',
+        hasInternship: initialData.hasInternship || false,
+        internshipDetails: initialData.internshipDetails || '',
+        hasExperience: initialData.hasExperience || false,
+        experienceDetails: initialData.experienceDetails || '',
+      });
+    }
+  }, [initialData]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -46,6 +69,15 @@ const ProfileForm = ({ onSuccess }) => {
 
   return (
     <div className="max-w-2xl mx-auto p-6">
+      {onBack && (
+        <button
+          type="button"
+          onClick={onBack}
+          className="mb-4 px-4 py-2 border border-gray-400 text-gray-700 rounded hover:bg-gray-100 flex items-center gap-2"
+        >
+          <span>←</span> Back
+        </button>
+      )}
       <h2 className="text-2xl font-bold mb-6">Profile Form</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>

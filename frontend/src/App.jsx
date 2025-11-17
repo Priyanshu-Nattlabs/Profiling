@@ -79,6 +79,19 @@ function App() {
     setCurrentView('template');
   };
 
+  const handleBackToStart = () => {
+    setError(null);
+    setFormData(null);
+    setProfileData(null);
+    setCurrentView('start');
+  };
+
+  const handleBackToForm = () => {
+    setError(null);
+    setCurrentView('form');
+  };
+
+
   return (
     <div className="min-h-screen bg-gray-50">
       {currentView === 'start' && <StartButton onStart={handleStart} />}
@@ -90,7 +103,7 @@ function App() {
               Error: {error}
             </div>
           )}
-          <ProfileForm onSuccess={handleFormSuccess} />
+          <ProfileForm onSuccess={handleFormSuccess} onBack={handleBackToStart} initialData={formData} />
         </div>
       )}
       
@@ -104,6 +117,7 @@ function App() {
           <TemplateSelection
             onTemplateSelect={handleTemplateSelect}
             onCoverLetterSelect={() => handleTemplateSelect('cover')}
+            onBack={handleBackToForm}
           />
         </div>
       )}

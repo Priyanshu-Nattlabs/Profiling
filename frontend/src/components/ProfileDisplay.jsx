@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 
-import { fetchTemplates } from '../api';
+import { fetchTemplates, enhanceProfileWithAI } from '../api';
+import SaarthiChatbot from './SaarthiChatbot';
 
 const emptyProfile = {
   name: '',
@@ -49,6 +50,11 @@ const ProfileDisplay = ({ profileData }) => {
   const [templateOptions, setTemplateOptions] = useState(defaultTemplateOptions);
   const [downloadError, setDownloadError] = useState(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isChangingTemplate, setIsChangingTemplate] = useState(false);
+  const [enhancedProfile, setEnhancedProfile] = useState(null);
+  const [isEnhancing, setIsEnhancing] = useState(false);
+  const [enhanceError, setEnhanceError] = useState(null);
+  const [showChatbot, setShowChatbot] = useState(false);
 
   useEffect(() => {
     setCurrentProfileData(profileData);
@@ -123,6 +129,24 @@ const ProfileDisplay = ({ profileData }) => {
       });
     }
   }, [isEditing, profile]);
+
+  // Convert profile to UserProfile format for chatbot
+  const convertToUserProfile = (profile) => {
+    return {
+      name: profile.name || '',
+      email: profile.email || '',
+      institute: profile.institute || '',
+      currentDegree: profile.currentDegree || '',
+      branch: profile.branch || '',
+      yearOfStudy: profile.yearOfStudy || '',
+      technicalSkills: profile.technicalSkills || '',
+      softSkills: profile.softSkills || '',
+      certifications: profile.certifications || '',
+      achievements: profile.achievements || '',
+      hobbies: profile.hobbies || '',
+      goals: profile.goals || ''
+    };
+  };
 
   if (!profile) {
     return <div className="p-6">No profile data to display</div>;
@@ -206,6 +230,36 @@ const ProfileDisplay = ({ profileData }) => {
     setIsEditing(true);
   };
 
+  const handleTemplateChange = async (event) => {
+    const newTemplateType = event.target.value;
+    if (!profileId || !newTemplateType || newTemplateType === templateType) {
+      return;
+    }
+
+    try {
+      setIsChangingTemplate(true);
+      setDownloadError(null);
+      
+      // Update profile with new template type
+      const response = await axios.put(
+        `${apiBaseUrl}/api/profiles/${profileId}`,
+        { templateType: newTemplateType }
+      );
+
+      const updatedData = response.data?.data || response.data;
+      setCurrentProfileData(updatedData);
+    } catch (error) {
+      console.error('Error changing template:', error);
+      setDownloadError(
+        error.response?.data?.message || 
+        error.message || 
+        'Failed to change template. Please try again.'
+      );
+    } finally {
+      setIsChangingTemplate(false);
+    }
+  };
+
   const handleInputChange = (event) => {
     const { name, value, type, checked } = event.target;
     if (type === 'checkbox') {
@@ -247,6 +301,35 @@ const ProfileDisplay = ({ profileData }) => {
     }
   };
 
+  const handleEnhanceWithAI = async () => {
+    if (!templateText || templateText.trim().length === 0) {
+      setEnhanceError('No profile text available to enhance');
+      return;
+    }
+
+    try {
+      setIsEnhancing(true);
+      setEnhanceError(null);
+      setEnhancedProfile(null);
+
+      const result = await enhanceProfileWithAI(templateText);
+
+      if (result.success) {
+        setEnhancedProfile(result.data);
+        setEnhanceError(null);
+      } else {
+        setEnhanceError(result.error || 'Failed to enhance profile');
+        setEnhancedProfile(null);
+      }
+    } catch (error) {
+      console.error('Error enhancing profile:', error);
+      setEnhanceError(error.message || 'An unexpected error occurred');
+      setEnhancedProfile(null);
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
+
   const heading = templateType && templateType.toLowerCase() === 'cover'
     ? 'Cover Letter'
     : 'Profile Details';
@@ -267,57 +350,161 @@ const ProfileDisplay = ({ profileData }) => {
   }, [templateCss]);
 
   return (
-    <div className="max-w-3xl mx-auto p-6">
-      <h2 className="text-2xl font-bold mb-6">{heading}</h2>
+    <div className="profile-container">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+        <h2>{heading}</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <label htmlFor="template-selector" style={{ fontSize: '0.95rem', fontWeight: '500', color: '#444' }}>
+            Change Template:
+          </label>
+          <select
+            id="template-selector"
+            value={templateType || 'professional'}
+            onChange={handleTemplateChange}
+            disabled={!profileId || isChangingTemplate}
+            style={{
+              padding: '8px 12px',
+              borderRadius: '6px',
+              border: '1px solid #ddd',
+              fontSize: '0.95rem',
+              cursor: isChangingTemplate ? 'not-allowed' : 'pointer',
+              backgroundColor: isChangingTemplate ? '#f5f5f5' : 'white',
+              minWidth: '180px'
+            }}
+          >
+            {templateOptions
+              .filter(option => option.value !== 'cover' || templateType === 'cover')
+              .map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+          </select>
+          {isChangingTemplate && (
+            <span style={{ fontSize: '0.85rem', color: '#666' }}>Loading...</span>
+          )}
+        </div>
+      </div>
 
       {templateText && (
-        <div className="mb-6 p-4 border rounded bg-white shadow-sm">
+        <div className="profile-card">
           {(templateIcon || templateName) && (
-            <div className="flex items-center gap-3 mb-3">
-              {templateIcon && <span className="text-3xl">{templateIcon}</span>}
-              <div>
-                {templateName && <h3 className="text-lg font-semibold">{templateName}</h3>}
-                {templateDescription && (
-                  <p className="text-sm text-gray-600">{templateDescription}</p>
-                )}
-              </div>
-            </div>
+            <h3>
+              {templateIcon && <span>{templateIcon}</span>} {templateName}
+              {templateDescription && (
+                <span style={{ display: 'block', fontSize: '0.9rem', color: '#666', marginTop: '8px', fontWeight: 'normal' }}>
+                  {templateDescription}
+                </span>
+              )}
+            </h3>
           )}
           <p className="whitespace-pre-line">{templateText}</p>
         </div>
       )}
 
       {!templateText && (
-        <div className="p-4 border mb-6">
+        <div className="profile-card">
           <p>No template available.</p>
         </div>
       )}
 
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center gap-4">
-          <button
-            type="button"
-            onClick={handleDownload}
-            className="px-4 py-2 bg-blue-600 text-white rounded disabled:bg-gray-400 disabled:cursor-not-allowed"
-            disabled={!profileId || isDownloading}
-          >
-            {isDownloading ? 'Downloading...' : 'Download Profile (PDF)'}
-          </button>
-          <button
-            type="button"
-            onClick={handleEditClick}
-            className="px-4 py-2 bg-gray-700 text-white rounded"
-            disabled={!profileId}
-          >
-            Edit Profile
-          </button>
-        </div>
-        {downloadError && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
-            {downloadError}
-          </div>
-        )}
+      <div className="profile-actions">
+        <button
+          type="button"
+          onClick={handleDownload}
+          className="profile-btn btn-pdf"
+          disabled={!profileId || isDownloading}
+        >
+          {isDownloading ? 'Downloading...' : 'Download Profile (PDF)'}
+        </button>
+        <button
+          type="button"
+          onClick={handleEditClick}
+          className="profile-btn btn-edit"
+          disabled={!profileId}
+        >
+          Edit Profile
+        </button>
+        <button
+          type="button"
+          onClick={handleEnhanceWithAI}
+          className="profile-btn"
+          disabled={!templateText || isEnhancing}
+          style={{
+            backgroundColor: '#10b981',
+            color: 'white',
+            border: 'none',
+            padding: '10px 20px',
+            borderRadius: '6px',
+            cursor: isEnhancing || !templateText ? 'not-allowed' : 'pointer',
+            opacity: isEnhancing || !templateText ? 0.6 : 1,
+            fontSize: '0.95rem',
+            fontWeight: '500',
+            transition: 'opacity 0.2s'
+          }}
+        >
+          {isEnhancing ? 'Enhancing...' : '✨ Enhance with AI'}
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowChatbot(!showChatbot)}
+          className="profile-btn"
+          style={{
+            backgroundColor: showChatbot ? '#ef4444' : '#8b5cf6',
+            color: 'white',
+            border: 'none',
+            padding: '10px 20px',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontSize: '0.95rem',
+            fontWeight: '500',
+            transition: 'background-color 0.2s'
+          }}
+        >
+          {showChatbot ? '❌ Close Chatbot' : '💬 Chat with Saarthi'}
+        </button>
       </div>
+      {downloadError && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm" style={{ marginTop: '20px' }}>
+          {downloadError}
+        </div>
+      )}
+      {enhanceError && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm" style={{ marginTop: '20px' }}>
+          {enhanceError}
+        </div>
+      )}
+      {enhancedProfile && (
+        <div className="profile-card" style={{ marginTop: '30px', border: '2px solid #10b981' }}>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '8px', 
+            marginBottom: '16px',
+            paddingBottom: '12px',
+            borderBottom: '1px solid #e5e7eb'
+          }}>
+            <span style={{ fontSize: '1.2rem' }}>✨</span>
+            <h3 style={{ margin: 0, color: '#10b981', fontSize: '1.25rem', fontWeight: '600' }}>
+              AI-Enhanced Profile
+            </h3>
+          </div>
+          <p className="whitespace-pre-line" style={{ 
+            lineHeight: '1.6',
+            color: '#374151',
+            fontSize: '1rem'
+          }}>
+            {enhancedProfile}
+          </p>
+        </div>
+      )}
+
+      {/* Saarthi Chatbot */}
+      {showChatbot && profile && (
+        <div style={{ marginTop: '40px' }}>
+          <SaarthiChatbot userProfile={convertToUserProfile(profile)} />
+        </div>
+      )}
 
       {isEditing && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 px-4">

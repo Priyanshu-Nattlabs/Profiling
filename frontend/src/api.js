@@ -47,5 +47,109 @@ export const fetchTemplates = async () => {
   }
 };
 
+/**
+ * API function to enhance profile using AI
+ * @param {string} profileText - The profile text to enhance
+ * @returns {Promise<{success: boolean, data?: string, error?: string}>}
+ */
+export const enhanceProfileWithAI = async (profileText) => {
+  try {
+    if (!profileText || profileText.trim().length === 0) {
+      return {
+        success: false,
+        error: 'Profile text is required'
+      };
+    }
+
+    const response = await api.post('/api/ai-enhance', {
+      profile: profileText
+    });
+
+    // Backend returns: { message: "...", data: { enhancedProfile: "..." } }
+    const enhancedProfile = response.data?.data?.enhancedProfile || response.data?.enhancedProfile;
+    
+    if (!enhancedProfile) {
+      return {
+        success: false,
+        error: 'No enhanced profile returned from server'
+      };
+    }
+
+    return {
+      success: true,
+      data: enhancedProfile
+    };
+  } catch (error) {
+    console.error('API error:', error);
+    return {
+      success: false,
+      error: error.response?.data?.message || error.message || 'Failed to enhance profile with AI'
+    };
+  }
+};
+
+/**
+ * Chatbot API functions
+ */
+
+// Generate personalized questions based on user profile
+export const generateQuestions = async (userProfile) => {
+  try {
+    const response = await api.post('/api/generate-questions', {
+      userProfile
+    });
+    return {
+      success: true,
+      data: response.data?.data || response.data
+    };
+  } catch (error) {
+    console.error('Error generating questions:', error);
+    return {
+      success: false,
+      error: error.response?.data?.message || error.message || 'Failed to generate questions'
+    };
+  }
+};
+
+// Send chat message and get next question
+export const sendChatMessage = async (userMessage, conversationState) => {
+  try {
+    const response = await api.post('/api/chat', {
+      userMessage,
+      conversationState
+    });
+    return {
+      success: true,
+      data: response.data?.data || response.data
+    };
+  } catch (error) {
+    console.error('Error sending chat message:', error);
+    return {
+      success: false,
+      error: error.response?.data?.message || error.message || 'Failed to send message'
+    };
+  }
+};
+
+// Evaluate user interests
+export const evaluateInterests = async (userProfile, answers) => {
+  try {
+    const response = await api.post('/api/evaluate', {
+      userProfile,
+      answers
+    });
+    return {
+      success: true,
+      data: response.data?.data || response.data
+    };
+  } catch (error) {
+    console.error('Error evaluating interests:', error);
+    return {
+      success: false,
+      error: error.response?.data?.message || error.message || 'Failed to evaluate interests'
+    };
+  }
+};
+
 export default api;
 

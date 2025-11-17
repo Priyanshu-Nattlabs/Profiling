@@ -12,7 +12,7 @@ const TEMPLATE_ORDER = [
   'cover'
 ];
 
-const TemplateSelection = ({ onTemplateSelect, onCoverLetterSelect }) => {
+const TemplateSelection = ({ onTemplateSelect, onCoverLetterSelect, onBack }) => {
   const [templates, setTemplates] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -82,6 +82,15 @@ const TemplateSelection = ({ onTemplateSelect, onCoverLetterSelect }) => {
 
   return (
     <div className="max-w-4xl mx-auto p-6">
+      {onBack && (
+        <button
+          type="button"
+          onClick={onBack}
+          className="mb-4 px-4 py-2 border border-gray-400 text-gray-700 rounded hover:bg-gray-100 flex items-center gap-2"
+        >
+          <span>←</span> Back
+        </button>
+      )}
       <h2 className="text-2xl font-bold mb-6">Choose Your Profile Template</h2>
       <p className="mb-8">Select a template style for your profile</p>
 

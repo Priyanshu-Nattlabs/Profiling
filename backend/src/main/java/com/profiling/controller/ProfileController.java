@@ -29,6 +29,7 @@ public class ProfileController {
     public ProfileController(ProfileService profileService, PDFService pdfService) {
         this.profileService = profileService;
         this.pdfService = pdfService;
+    
     }
 
     /**
