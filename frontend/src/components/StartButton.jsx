@@ -1,15 +1,20 @@
 import React from 'react';
+import Dashboard from './Dashboard';
 
-const StartButton = ({ onStart }) => {
+const StartButton = ({ onStart, onViewSaved, onNavigateToStart, onPsychometricTest, onViewSavedReports }) => {
+  const handleStartProfiling = () => {
+    if (onStart) {
+      onStart();
+    }
+  };
+
   return (
-    <div className="flex justify-center items-center min-h-screen">
-      <button
-        onClick={onStart}
-        className="px-6 py-3 bg-blue-600 text-white rounded hover:bg-blue-700"
-      >
-        Start Profiling
-      </button>
-    </div>
+    <Dashboard 
+      onStartProfiling={handleStartProfiling} 
+      onViewSaved={onViewSaved}
+      onPsychometricTest={onPsychometricTest}
+      onViewSavedReports={onViewSavedReports}
+    />
   );
 };
 

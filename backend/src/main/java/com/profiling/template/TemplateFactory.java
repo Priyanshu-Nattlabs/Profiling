@@ -21,10 +21,11 @@ public class TemplateFactory {
 
     public TemplateRenderResult generate(String templateType, Profile profile) {
         String normalizedType = normalizeType(templateType);
+        String userId = profile.getUserId(); // Get userId from profile
 
-        Optional<TemplateEntity> requestedTemplate = templateService.getTemplateByType(normalizedType);
+        Optional<TemplateEntity> requestedTemplate = templateService.getTemplateByType(normalizedType, userId);
         TemplateEntity template = requestedTemplate
-                .orElseGet(() -> templateService.getTemplateByType(DEFAULT_TEMPLATE_TYPE)
+                .orElseGet(() -> templateService.getTemplateByType(DEFAULT_TEMPLATE_TYPE, userId)
                         .orElseThrow(() -> new IllegalStateException(
                                 "Default template '" + DEFAULT_TEMPLATE_TYPE + "' is not configured.")));
 

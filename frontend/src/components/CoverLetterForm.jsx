@@ -44,7 +44,7 @@ const CoverLetterForm = ({ onSubmit, onBack }) => {
         </div>
 
         <div>
-          <label className="block mb-1">Company Name</label>
+          <label className="block mb-1">Company Name <span style={{ color: '#ef4444' }}>*</span></label>
           <input
             type="text"
             name="companyName"
@@ -57,7 +57,7 @@ const CoverLetterForm = ({ onSubmit, onBack }) => {
         </div>
 
         <div>
-          <label className="block mb-1">Company Address</label>
+          <label className="block mb-1">Company Address <span style={{ color: '#ef4444' }}>*</span></label>
           <input
             type="text"
             name="companyAddress"
@@ -70,7 +70,7 @@ const CoverLetterForm = ({ onSubmit, onBack }) => {
         </div>
 
         <div>
-          <label className="block mb-1">Position / Job Title</label>
+          <label className="block mb-1">Position / Job Title <span style={{ color: '#ef4444' }}>*</span></label>
           <input
             type="text"
             name="positionTitle"
@@ -130,15 +130,7 @@ const CoverLetterForm = ({ onSubmit, onBack }) => {
           />
         </div>
 
-        <div className="flex items-center justify-between gap-4">
-          <button
-            type="button"
-            onClick={onBack}
-            className="px-4 py-2 border border-gray-400 text-gray-700 rounded hover:bg-gray-100"
-          >
-            Back to Templates
-          </button>
-
+        <div className="flex items-center justify-end gap-4">
           <button
             type="submit"
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"

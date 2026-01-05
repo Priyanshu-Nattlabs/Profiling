@@ -1,229 +1,463 @@
 package com.profiling.service;
 
-import com.profiling.model.Profile;
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDPage;
-import org.apache.pdfbox.pdmodel.PDPageContentStream;
-import org.apache.pdfbox.pdmodel.common.PDRectangle;
-import org.apache.pdfbox.pdmodel.font.PDType1Font;
-import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
-import org.springframework.stereotype.Service;
-
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
+import java.time.LocalDate;
+import java.time.format.TextStyle;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import org.springframework.web.util.HtmlUtils;
+
+import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
+import com.profiling.model.Profile;
+import com.profiling.template.TemplateRenderResult;
 
 @Service
 public class PDFService {
+
+    private static final Logger log = LoggerFactory.getLogger(PDFService.class);
     
-    public byte[] generateProfilePDF(Profile profile, String templateText) {
+    public byte[] generateProfilePDF(Profile profile, TemplateRenderResult renderResult) {
         if (profile == null) {
             throw new IllegalArgumentException("Profile must not be null");
         }
-        
-        try (PDDocument document = new PDDocument();
-             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
-            
-            float margin = 50;
-            float lineHeight = 20;
-            float titleFontSize = 18;
-            float headingFontSize = 14;
-            float bodyFontSize = 11;
-            
-            PDType1Font titleFont = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
-            PDType1Font headingFont = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
-            PDType1Font bodyFont = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
-            
-            PDPage currentPage = new PDPage(PDRectangle.A4);
-            document.addPage(currentPage);
-            PDPageContentStream contentStream = new PDPageContentStream(document, currentPage);
-            float yPosition = currentPage.getMediaBox().getHeight() - margin;
-            float maxWidth = currentPage.getMediaBox().getWidth() - (2 * margin);
-            
-            try {
-                // Title
-                String title = profile.getTemplateType() != null && 
-                              profile.getTemplateType().toLowerCase().equals("cover") 
-                              ? "Cover Letter" : "Profile";
-                contentStream.beginText();
-                contentStream.setFont(titleFont, titleFontSize);
-                contentStream.newLineAtOffset(margin, yPosition);
-                contentStream.showText(title);
-                contentStream.endText();
-                yPosition -= lineHeight * 1.5f;
-                
-                // If template text is provided, use it
-                if (templateText != null && !templateText.trim().isEmpty()) {
-                    contentStream.beginText();
-                    contentStream.setFont(bodyFont, bodyFontSize);
-                    contentStream.newLineAtOffset(margin, yPosition);
-                    
-                    String[] lines = templateText.split("\n");
-                    for (String line : lines) {
-                        if (yPosition < margin + lineHeight) {
-                            break; // Stop if we run out of space
-                        }
-                        
-                        // Handle long lines by wrapping
-                        String[] wrappedLines = wrapText(line, bodyFont, bodyFontSize, maxWidth);
-                        
-                        for (String wrappedLine : wrappedLines) {
-                            if (yPosition < margin + lineHeight) {
-                                break;
-                            }
-                            
-                            contentStream.showText(wrappedLine);
-                            yPosition -= lineHeight;
-                            contentStream.newLineAtOffset(0, -lineHeight);
-                        }
-                    }
-                    contentStream.endText();
-                } else {
-                    // Generate profile content from profile data
-                    yPosition = addSection(contentStream, "Personal Information", headingFont, headingFontSize, 
-                                         margin, yPosition, lineHeight);
-                    
-                    yPosition = addField(contentStream, "Name", profile.getName(), bodyFont, bodyFontSize,
-                                       margin, yPosition, lineHeight, maxWidth);
-                    yPosition = addField(contentStream, "Email", profile.getEmail(), bodyFont, bodyFontSize,
-                                       margin, yPosition, lineHeight, maxWidth);
-                    yPosition = addField(contentStream, "Date of Birth", profile.getDob(), bodyFont, bodyFontSize,
-                                       margin, yPosition, lineHeight, maxWidth);
-                    yPosition = addField(contentStream, "LinkedIn", profile.getLinkedin(), bodyFont, bodyFontSize,
-                                       margin, yPosition, lineHeight, maxWidth);
-                    
-                    yPosition = addSection(contentStream, "Education", headingFont, headingFontSize,
-                                         margin, yPosition, lineHeight);
-                    
-                    yPosition = addField(contentStream, "Institute", profile.getInstitute(), bodyFont, bodyFontSize,
-                                       margin, yPosition, lineHeight, maxWidth);
-                    yPosition = addField(contentStream, "Degree", profile.getCurrentDegree(), bodyFont, bodyFontSize,
-                                       margin, yPosition, lineHeight, maxWidth);
-                    yPosition = addField(contentStream, "Branch", profile.getBranch(), bodyFont, bodyFontSize,
-                                       margin, yPosition, lineHeight, maxWidth);
-                    yPosition = addField(contentStream, "Year of Study", profile.getYearOfStudy(), bodyFont, bodyFontSize,
-                                       margin, yPosition, lineHeight, maxWidth);
-                    
-                    if (profile.getCertifications() != null && !profile.getCertifications().trim().isEmpty()) {
-                        yPosition = addSection(contentStream, "Certifications", headingFont, headingFontSize,
-                                             margin, yPosition, lineHeight);
-                        yPosition = addField(contentStream, "", profile.getCertifications(), bodyFont, bodyFontSize,
-                                           margin, yPosition, lineHeight, maxWidth);
-                    }
-                    
-                    if (profile.getAchievements() != null && !profile.getAchievements().trim().isEmpty()) {
-                        yPosition = addSection(contentStream, "Achievements", headingFont, headingFontSize,
-                                             margin, yPosition, lineHeight);
-                        yPosition = addField(contentStream, "", profile.getAchievements(), bodyFont, bodyFontSize,
-                                           margin, yPosition, lineHeight, maxWidth);
-                    }
-                    
-                    yPosition = addSection(contentStream, "Skills", headingFont, headingFontSize,
-                                         margin, yPosition, lineHeight);
-                    
-                    yPosition = addField(contentStream, "Technical Skills", profile.getTechnicalSkills(), bodyFont, bodyFontSize,
-                                       margin, yPosition, lineHeight, maxWidth);
-                    yPosition = addField(contentStream, "Soft Skills", profile.getSoftSkills(), bodyFont, bodyFontSize,
-                                       margin, yPosition, lineHeight, maxWidth);
-                    
-                    if (profile.getHasInternship() != null && profile.getHasInternship() && 
-                        profile.getInternshipDetails() != null && !profile.getInternshipDetails().trim().isEmpty()) {
-                        yPosition = addSection(contentStream, "Internship", headingFont, headingFontSize,
-                                             margin, yPosition, lineHeight);
-                        yPosition = addField(contentStream, "", profile.getInternshipDetails(), bodyFont, bodyFontSize,
-                                           margin, yPosition, lineHeight, maxWidth);
-                    }
-                    
-                    if (profile.getHasExperience() != null && profile.getHasExperience() && 
-                        profile.getExperienceDetails() != null && !profile.getExperienceDetails().trim().isEmpty()) {
-                        yPosition = addSection(contentStream, "Experience", headingFont, headingFontSize,
-                                             margin, yPosition, lineHeight);
-                        yPosition = addField(contentStream, "", profile.getExperienceDetails(), bodyFont, bodyFontSize,
-                                           margin, yPosition, lineHeight, maxWidth);
-                    }
-                }
-            } finally {
-                contentStream.close();
-            }
-            
-            document.save(outputStream);
+        if (renderResult == null) {
+            throw new IllegalArgumentException("Template render result must not be null");
+        }
+
+        log.info("Generating styled PDF for profileId={} template={}", profile.getId(), profile.getTemplateType());
+
+        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            String html = buildHtmlDocument(profile, renderResult);
+
+            PdfRendererBuilder builder = new PdfRendererBuilder();
+            builder.useFastMode();
+            builder.withHtmlContent(html, null);
+            builder.toStream(outputStream);
+            builder.run();
+
             return outputStream.toByteArray();
-            
-        } catch (IOException e) {
+        } catch (Exception e) {
+            log.error("Error generating PDF document for profileId={}: {}", profile.getId(), e.getMessage(), e);
             throw new RuntimeException("Error generating PDF document", e);
         }
     }
     
-    private float addSection(PDPageContentStream contentStream, String sectionName,
-                            PDType1Font font, float fontSize,
-                            float margin, float yPosition, float lineHeight) throws IOException {
-        if (yPosition < margin + lineHeight * 2) {
-            return yPosition; // Not enough space
-        }
-        
-        contentStream.beginText();
-        contentStream.setFont(font, fontSize);
-        contentStream.newLineAtOffset(margin, yPosition);
-        contentStream.showText(sectionName);
-        contentStream.endText();
-        
-        return yPosition - lineHeight * 1.5f;
+    private String buildHtmlDocument(Profile profile, TemplateRenderResult renderResult) {
+        String heading = resolveHeading(profile);
+        String css = buildCombinedCss(renderResult.getTemplateCss());
+        String bodyContent = buildBodyContent(profile, renderResult);
+
+        return """
+                <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                  <meta charset="UTF-8" />
+                  <style>
+                %s
+                  </style>
+                </head>
+                <body>
+                  <div class="profile-container">
+                    <h2>%s</h2>
+                    %s
+                  </div>
+                </body>
+                </html>
+                """.formatted(css, HtmlUtils.htmlEscape(heading), bodyContent);
     }
-    
-    private float addField(PDPageContentStream contentStream, String label, String value,
-                          PDType1Font font, float fontSize,
-                          float margin, float yPosition, float lineHeight, float maxWidth) throws IOException {
-        if (value == null || value.trim().isEmpty()) {
-            return yPosition;
+
+    private String resolveHeading(Profile profile) {
+        if (profile == null || !StringUtils.hasText(profile.getTemplateType())) {
+            return "Profile Details";
         }
-        
-        String text = label.isEmpty() ? value : (label + ": " + value);
-        String[] lines = wrapText(text, font, fontSize, maxWidth);
-        
-        for (String line : lines) {
-            if (yPosition < margin + lineHeight) {
-                return yPosition; // Not enough space
+        return "cover".equalsIgnoreCase(profile.getTemplateType()) ? "Cover Letter" : "Profile Details";
+    }
+
+    private String buildCombinedCss(String templateCss) {
+        StringBuilder cssBuilder = new StringBuilder();
+        cssBuilder.append(basePdfCss());
+        if (StringUtils.hasText(templateCss)) {
+            cssBuilder.append("\n").append(templateCss);
+        }
+        return cssBuilder.toString();
+    }
+
+    private String buildBodyContent(Profile profile, TemplateRenderResult renderResult) {
+        String templateType = profile != null ? profile.getTemplateType() : null;
+        if ("cover".equalsIgnoreCase(templateType)) {
+            return buildCoverLetterContent(renderResult.getRenderedText(), profile);
+        }
+        if ("professional-profile".equalsIgnoreCase(templateType)) {
+            return buildProfessionalProfileContent(renderResult.getRenderedText(), profile);
+        }
+        return buildStandardProfileContent(renderResult);
+    }
+
+    private String buildStandardProfileContent(TemplateRenderResult renderResult) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("<div class=\"profile-card\">");
+
+        if (StringUtils.hasText(renderResult.getTemplateName())) {
+            builder.append("<h3>");
+            if (StringUtils.hasText(renderResult.getTemplateIcon())) {
+                builder.append(HtmlUtils.htmlEscape(renderResult.getTemplateIcon())).append(" ");
             }
-            
-            contentStream.beginText();
-            contentStream.setFont(font, fontSize);
-            contentStream.newLineAtOffset(margin, yPosition);
-            contentStream.showText(line);
-            contentStream.endText();
-            yPosition -= lineHeight;
+            builder.append(HtmlUtils.htmlEscape(renderResult.getTemplateName()));
+            if (StringUtils.hasText(renderResult.getTemplateDescription())) {
+                builder.append("<span class=\"template-description\">")
+                        .append(HtmlUtils.htmlEscape(renderResult.getTemplateDescription()))
+                        .append("</span>");
+            }
+            builder.append("</h3>");
         }
-        
-        return yPosition;
+
+        builder.append("<div class=\"template-body\">")
+                .append(convertTextToParagraphs(renderResult.getRenderedText()))
+                .append("</div>")
+                .append("</div>");
+        return builder.toString();
     }
-    
-    private String[] wrapText(String text, PDType1Font font, float fontSize, float maxWidth) throws IOException {
-        // Simple text wrapping - split by words and measure
-        if (text == null || text.isEmpty()) {
-            return new String[0];
+
+    private String buildCoverLetterContent(String templateText, Profile profile) {
+        List<String> lines = Arrays.stream(defaultString(templateText).split("\\r?\\n"))
+                .map(String::trim)
+                .filter(line -> !line.isEmpty())
+                .collect(Collectors.toList());
+
+        String companyInfo = !lines.isEmpty() ? lines.get(0) : "";
+        String companyAddress = lines.size() > 1 && !lines.get(1).toLowerCase(Locale.ENGLISH).startsWith("dear")
+                ? lines.get(1)
+                : "";
+
+        int salutationIdx = findSalutationIndex(lines);
+        String salutation = salutationIdx >= 0 ? lines.get(salutationIdx) : "";
+        int bodyStart = salutationIdx >= 0 ? salutationIdx + 1 : (StringUtils.hasText(companyAddress) ? 2 : 1);
+
+        int closingIdx = findClosingIndex(lines, bodyStart);
+        String closing = closingIdx >= 0 ? lines.get(closingIdx) : "";
+
+        int signatureStart = closingIdx >= 0 ? closingIdx + 1 : -1;
+        List<String> signatureLines = signatureStart >= 0 && signatureStart < lines.size()
+                ? lines.subList(signatureStart, lines.size())
+                : Collections.emptyList();
+
+        int bodyEnd = closingIdx >= 0 ? closingIdx : lines.size();
+        List<String> bodyLines = bodyStart < bodyEnd
+                ? lines.subList(bodyStart, bodyEnd)
+                : Collections.emptyList();
+
+        StringBuilder builder = new StringBuilder();
+        builder.append("<div class=\"profile-card\"><div class=\"cover-letter-content\">");
+        builder.append(buildCoverHeader(profile));
+
+        if (StringUtils.hasText(companyInfo) || StringUtils.hasText(companyAddress)) {
+            builder.append("<div class=\"cover-letter-company\">")
+                    .append("<div>To the hiring Manager</div>");
+
+            if (StringUtils.hasText(companyInfo)) {
+                builder.append("<div>").append(HtmlUtils.htmlEscape(companyInfo)).append("</div>");
+            }
+            if (StringUtils.hasText(companyAddress)) {
+                builder.append("<div>").append(HtmlUtils.htmlEscape(companyAddress)).append("</div>");
+            }
+
+            builder.append("<div class=\"cover-letter-date\"><strong>")
+                    .append(HtmlUtils.htmlEscape(formatCurrentDate()))
+                    .append("</strong></div>")
+                    .append("</div>");
         }
-        
-        String[] words = text.split(" ");
-        java.util.List<String> lines = new java.util.ArrayList<>();
-        StringBuilder currentLine = new StringBuilder();
-        
-        for (String word : words) {
-            String testLine = currentLine.length() > 0 ? currentLine + " " + word : word;
-            float width = font.getStringWidth(testLine) / 1000 * fontSize;
-            
-            if (width > maxWidth && currentLine.length() > 0) {
-                lines.add(currentLine.toString());
-                currentLine = new StringBuilder(word);
-            } else {
-                if (currentLine.length() > 0) {
-                    currentLine.append(" ");
+
+        if (StringUtils.hasText(salutation)) {
+            builder.append("<div class=\"cover-letter-salutation\">")
+                    .append(HtmlUtils.htmlEscape(salutation))
+                    .append("</div>");
+        }
+
+        if (!bodyLines.isEmpty()) {
+            builder.append("<div class=\"cover-letter-body\">");
+            for (String line : bodyLines) {
+                builder.append("<p>").append(HtmlUtils.htmlEscape(line)).append("</p>");
+            }
+            builder.append("</div>");
+        }
+
+        if (StringUtils.hasText(closing)) {
+            builder.append("<div class=\"cover-letter-closing\">")
+                    .append(HtmlUtils.htmlEscape(closing))
+                    .append("</div>");
+        }
+
+        if (!signatureLines.isEmpty()) {
+            builder.append("<div class=\"cover-letter-signature\">");
+            for (int i = 0; i < signatureLines.size(); i++) {
+                builder.append("<div>")
+                        .append(HtmlUtils.htmlEscape(signatureLines.get(i)))
+                        .append("</div>");
+            }
+            builder.append("</div>");
+        }
+
+        builder.append("</div></div>");
+        return builder.toString();
+    }
+
+    private String buildCoverHeader(Profile profile) {
+        String senderName = profile != null ? defaultString(profile.getName()) : "";
+        String senderEmail = profile != null ? defaultString(profile.getEmail()) : "";
+        String senderPhone = profile != null ? defaultString(profile.getPhone()) : "";
+        String senderLinkedin = profile != null ? defaultString(profile.getLinkedin()) : "";
+
+        StringBuilder builder = new StringBuilder();
+        builder.append("<div class=\"cover-letter-header-banner\">");
+        builder.append("<div class=\"cover-letter-header-name\">");
+        if (StringUtils.hasText(senderName)) {
+            Arrays.stream(senderName.split(" "))
+                    .filter(StringUtils::hasText)
+                    .forEach(part -> builder.append("<div>")
+                            .append(HtmlUtils.htmlEscape(part))
+                            .append("</div>"));
+        } else {
+            builder.append("<div>").append("Your Name").append("</div>");
+        }
+        builder.append("</div>");
+
+        builder.append("<div class=\"cover-letter-header-contact\">");
+        List<String> contactLines = new ArrayList<>();
+        if (StringUtils.hasText(senderEmail) || StringUtils.hasText(senderPhone)) {
+            List<String> pieces = new ArrayList<>();
+            if (StringUtils.hasText(senderEmail)) {
+                pieces.add(HtmlUtils.htmlEscape(senderEmail));
+            }
+            if (StringUtils.hasText(senderPhone)) {
+                pieces.add(HtmlUtils.htmlEscape(formatPhone(senderPhone)));
+            }
+            contactLines.add(String.join(" | ", pieces));
+        }
+        if (StringUtils.hasText(senderLinkedin)) {
+            contactLines.add(HtmlUtils.htmlEscape(senderLinkedin));
+        }
+
+        if (contactLines.isEmpty()) {
+            contactLines.add("contact@example.com");
+        }
+
+        contactLines.forEach(line -> builder.append("<div>").append(line).append("</div>"));
+        builder.append("</div></div>");
+        return builder.toString();
+    }
+
+    private String buildProfessionalProfileContent(String templateText, Profile profile) {
+        String summaryParagraphs = convertTextToParagraphs(templateText);
+
+        List<String> educationItems = new ArrayList<>();
+        if (profile != null) {
+            if (StringUtils.hasText(profile.getCurrentDegree()) && StringUtils.hasText(profile.getBranch())
+                    && StringUtils.hasText(profile.getInstitute())) {
+                educationItems.add(HtmlUtils.htmlEscape(profile.getCurrentDegree() + " in " + profile.getBranch()
+                        + " at " + profile.getInstitute()));
+            } else if (StringUtils.hasText(profile.getInstitute())) {
+                educationItems.add(HtmlUtils.htmlEscape(profile.getInstitute()));
+            }
+            if (StringUtils.hasText(profile.getYearOfStudy())) {
+                educationItems.add("Year of Study: " + HtmlUtils.htmlEscape(profile.getYearOfStudy()));
+            }
+        }
+
+        List<String> skills = new ArrayList<>();
+        if (profile != null) {
+            skills.addAll(splitAndEscape(profile.getTechnicalSkills()));
+            skills.addAll(splitAndEscape(profile.getSoftSkills()));
+        }
+
+        List<String> certifications = profile != null ? splitAndEscape(profile.getCertifications()) : List.of();
+        String position = profile != null && StringUtils.hasText(profile.getBranch())
+                ? profile.getBranch() + " Student"
+                : "Student";
+
+        StringBuilder builder = new StringBuilder();
+        builder.append("<div class=\"profile-card\">");
+        builder.append("<div class=\"professional-profile-layout\">");
+        builder.append("<div class=\"professional-profile-content\">");
+        builder.append("<div class=\"professional-profile-summary\">").append(summaryParagraphs).append("</div>");
+
+        if (!educationItems.isEmpty()) {
+            builder.append("<div class=\"professional-profile-section\">")
+                    .append("<div class=\"professional-profile-section-title\">Education</div>")
+                    .append("<div class=\"professional-profile-section-content\"><ul>");
+            educationItems.forEach(item -> builder.append("<li>").append(item).append("</li>"));
+            builder.append("</ul></div></div>");
+        }
+
+        if (!skills.isEmpty()) {
+            builder.append("<div class=\"professional-profile-section\">")
+                    .append("<div class=\"professional-profile-section-title\">Skills</div>")
+                    .append("<div class=\"professional-profile-section-content\"><ul>");
+            skills.forEach(skill -> builder.append("<li>").append(skill).append("</li>"));
+            builder.append("</ul></div></div>");
+        }
+
+        if (!certifications.isEmpty()) {
+            builder.append("<div class=\"professional-profile-section\">")
+                    .append("<div class=\"professional-profile-section-title\">Certifications</div>")
+                    .append("<div class=\"professional-profile-section-content\"><ul>");
+            certifications.forEach(cert -> builder.append("<li>").append(cert).append("</li>"));
+            builder.append("</ul></div></div>");
+        }
+
+        builder.append("</div>"); // end content
+
+        builder.append("<div class=\"professional-profile-sidebar\">")
+                .append("<div class=\"professional-profile-title\">Professional Profile</div>");
+
+        if (profile != null && StringUtils.hasText(profile.getProfileImage())) {
+            builder.append("<img class=\"professional-profile-image\" src=\"")
+                    .append(HtmlUtils.htmlEscape(profile.getProfileImage()))
+                    .append("\" alt=\"Profile\" />");
+        }
+
+        builder.append("<div class=\"professional-profile-name\">")
+                .append(HtmlUtils.htmlEscape(defaultString(profile != null ? profile.getName() : "")))
+                .append("</div>");
+        builder.append("<div class=\"professional-profile-position\">")
+                .append(HtmlUtils.htmlEscape(position))
+                .append("</div>");
+
+        builder.append("</div>"); // end sidebar
+        builder.append("</div></div>");
+        return builder.toString();
+    }
+
+    private String convertTextToParagraphs(String text) {
+        return Arrays.stream(defaultString(text).split("\\r?\\n"))
+                .map(String::trim)
+                .filter(StringUtils::hasText)
+                .map(line -> "<p>" + HtmlUtils.htmlEscape(line) + "</p>")
+                .collect(Collectors.joining());
+    }
+
+    private List<String> splitAndEscape(String value) {
+        if (!StringUtils.hasText(value)) {
+            return Collections.emptyList();
+        }
+        return Arrays.stream(value.split(","))
+                .map(String::trim)
+                .filter(StringUtils::hasText)
+                .map(HtmlUtils::htmlEscape)
+                .collect(Collectors.toList());
+    }
+
+    private int findSalutationIndex(List<String> lines) {
+        for (int i = 0; i < lines.size(); i++) {
+            if (lines.get(i).toLowerCase(Locale.ENGLISH).startsWith("dear")) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private int findClosingIndex(List<String> lines, int startIndex) {
+        for (int i = startIndex; i < lines.size(); i++) {
+            String lower = lines.get(i).toLowerCase(Locale.ENGLISH);
+            if (lower.contains("regards") || lower.contains("sincerely")
+                    || (lower.contains("best") && lower.contains("regards"))) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private String formatPhone(String phone) {
+        if (!StringUtils.hasText(phone)) {
+            return "";
+        }
+        String digits = phone.replaceAll("\\D", "");
+        if (digits.length() == 10) {
+            return "(" + digits.substring(0, 3) + ") " + digits.substring(3, 6) + "-" + digits.substring(6);
+        }
+        return phone;
+    }
+
+    private String formatCurrentDate() {
+        LocalDate today = LocalDate.now();
+        int day = today.getDayOfMonth();
+        String month = today.getMonth().getDisplayName(TextStyle.FULL, Locale.ENGLISH);
+        int year = today.getYear();
+        return day + getOrdinalSuffix(day) + " " + month + " " + year;
+    }
+
+    private String getOrdinalSuffix(int day) {
+        if (day > 3 && day < 21) {
+            return "th";
+        }
+        return switch (day % 10) {
+            case 1 -> "st";
+            case 2 -> "nd";
+            case 3 -> "rd";
+            default -> "th";
+        };
+    }
+
+    private String defaultString(String value) {
+        return value == null ? "" : value;
+    }
+
+    private String basePdfCss() {
+        return """
+                @page { size: A4; margin: 20mm; }
+                * {
+                  box-sizing: border-box;
                 }
-                currentLine.append(word);
-            }
-        }
-        
-        if (currentLine.length() > 0) {
-            lines.add(currentLine.toString());
-        }
-        
-        return lines.toArray(new String[0]);
+                body {
+                  font-family: 'Inter', 'Poppins', sans-serif;
+                  color: #1a1a1a;
+                  margin: 0;
+                  padding: 0;
+                  background: #f5f5f5;
+                }
+                h2 {
+                  margin: 0 0 24px 0;
+                }
+                .profile-container {
+                  max-width: 800px;
+                  margin: 0 auto;
+                  padding: 20px;
+                  background: #f9fafb;
+                }
+                .profile-card {
+                  background: #ffffff;
+                  border-radius: 16px;
+                  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+                  padding: 30px;
+                }
+                .profile-card h3 {
+                  margin-top: 0;
+                }
+                .template-description {
+                  display: block;
+                  font-size: 0.9rem;
+                  color: #666;
+                  margin-top: 8px;
+                  font-weight: normal;
+                }
+                .template-body p {
+                  line-height: 1.8;
+                  margin: 0 0 16px 0;
+                  text-align: justify;
+                }
+                .cover-letter-body p {
+                  line-height: 1.8;
+                  margin-bottom: 16px;
+                }
+                """;
     }
 }
+

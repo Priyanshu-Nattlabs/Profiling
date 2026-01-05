@@ -5,7 +5,7 @@ FROM node:18 AS builder
 WORKDIR /app
 
 # Accept build argument for API URL
-ARG VITE_API_BASE_URL=http://localhost:8080
+ARG VITE_API_BASE_URL=http://localhost:9090
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 
 # Copy package files
@@ -26,15 +26,11 @@ FROM nginx:alpine
 # Copy built files from builder stage to nginx html directory
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy nginx configuration (optional - using default for now)
-# If you need custom nginx config, uncomment and create nginx.conf
-# COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy nginx configuration
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Expose port 3000
-EXPOSE 3000
-
-# Update nginx to listen on port 3000
-RUN sed -i 's/listen       80;/listen       3000;/' /etc/nginx/conf.d/default.conf
+# Expose port 4000
+EXPOSE 4000
 
 # Start nginx
 CMD ["nginx", "-g", "daemon off;"]

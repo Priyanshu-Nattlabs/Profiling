@@ -234,6 +234,10 @@ http://localhost:8080/api
       "Create a SaaS product for a specific niche",
       "Develop a mobile app with React Native"
     ],
+    "invalidAnswers": {
+      "What technical skills are you most passionate about?": "df",
+      "How do you approach solving complex problems?": "d"
+    },
     "summary": "Based on your profile and responses, you show strong interest in technology and design, with emerging leadership and entrepreneurial traits. Your technical skills combined with creative abilities position you well for full-stack development or UI/UX design roles. Focus on building a strong portfolio and gaining practical experience through projects and internships."
   }
 }
@@ -262,6 +266,10 @@ Content-Type: application/json
   }
 }
 ```
+
+**Note:** When Saarthi flags one or more answers as very short or placeholder-y, the `/evaluate` response now includes:
+- `invalidAnswers`: a map of the question to the captured text so clients can highlight it.
+- The `summary` field is automatically prefixed with a warning about relying on the other answers.
 
 ### Chat Request
 

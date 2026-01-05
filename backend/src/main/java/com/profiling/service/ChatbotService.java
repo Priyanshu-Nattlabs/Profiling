@@ -3,6 +3,9 @@ package com.profiling.service;
 import com.profiling.dto.ChatRequest;
 import com.profiling.dto.ChatState;
 import com.profiling.dto.UserProfile;
+import com.profiling.exception.BadRequestException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +19,7 @@ import java.util.Map;
 public class ChatbotService {
 
     private final OpenAIService openAIService;
+    private static final Logger log = LoggerFactory.getLogger(ChatbotService.class);
 
     @Autowired
     public ChatbotService(OpenAIService openAIService) {
@@ -30,9 +34,24 @@ public class ChatbotService {
         String userMessage = request.getUserMessage();
 
         if (state == null) {
-            throw new IllegalArgumentException("Conversation state is required");
+            log.warn("Conversation state missing in chat request");
+            throw new BadRequestException("Conversation state is required");
         }
 
+        if (userMessage == null || userMessage.trim().isEmpty()) {
+            log.warn("User message missing in chat request");
+            throw new BadRequestException("User message is required");
+        }
+
+        log.info("Processing chatbot conversation step");
+        
+        // Calculate current question number (0-indexed)
+        int currentQuestionNum = (state.getCurrentStage() - 1) * 5 + state.getCurrentQuestionIndex();
+        int maxQuestions = 15;
+        
+        log.info("Current question: {}/{}, WHY questions: DISABLED", currentQuestionNum + 1, maxQuestions);
+        
+        // DISABLED: WHY follow-up questions to ensure exactly 15 questions are asked
         // If there's a pending WHY question, handle it first
         if (state.getPendingWhyQuestion() != null && !state.getPendingWhyQuestion().isEmpty()) {
             // User answered the WHY question, store it and move on
@@ -48,12 +67,20 @@ public class ChatbotService {
             if (currentQuestion != null) {
                 state.addAnswer(currentQuestion, userMessage);
 
-                // Check if we should ask a WHY question
-                String whyQuestion = openAIService.generateWhyQuestion(currentQuestion, userMessage);
-                if (whyQuestion != null && !whyQuestion.isEmpty()) {
-                    state.setPendingWhyQuestion(whyQuestion);
-                    return new ChatResponse(whyQuestion, state, false);
+                // WHY questions DISABLED to keep conversation to exactly 15 questions
+                // This ensures the chatbot doesn't exceed the 15 question limit
+                /*
+                // Only ask WHY questions for the first 12 questions to ensure we don't exceed 15 total
+                // This allows for some WHY follow-ups while keeping total questions manageable
+                if (currentQuestionNum < 12) {
+                    // Check if we should ask a WHY question
+                    String whyQuestion = openAIService.generateWhyQuestion(currentQuestion, userMessage);
+                    if (whyQuestion != null && !whyQuestion.isEmpty()) {
+                        state.setPendingWhyQuestion(whyQuestion);
+                        return new ChatResponse(whyQuestion, state, false);
+                    }
                 }
+                */
             }
         }
 
@@ -65,8 +92,47 @@ public class ChatbotService {
             return new ChatResponse(null, state, true);
         }
 
-        // Return next question
+        // Get next question and check if it's already been answered
         String nextQuestion = state.getCurrentQuestion();
+        
+        // Skip questions that have already been answered
+        int maxAttempts = 15; // Safety limit
+        int attempts = 0;
+        while (nextQuestion != null && state.getAnswers().containsKey(nextQuestion) && attempts < maxAttempts) {
+            log.info("Skipping already answered question: {}", nextQuestion);
+            state.moveToNextQuestion();
+            if (state.isComplete()) {
+                return new ChatResponse(null, state, true);
+            }
+            nextQuestion = state.getCurrentQuestion();
+            attempts++;
+        }
+        
+        // Also check for similar "interests and goals" questions
+        if (nextQuestion != null) {
+            String normalizedNext = nextQuestion.toLowerCase();
+            boolean isInterestsGoalsQuestion = normalizedNext.contains("interests") && 
+                                             (normalizedNext.contains("goals") || normalizedNext.contains("goal"));
+            
+            if (isInterestsGoalsQuestion) {
+                // Check if we've already answered a similar question
+                for (String answeredQ : state.getAnswers().keySet()) {
+                    String normalizedAnswered = answeredQ.toLowerCase();
+                    boolean isSimilarInterestsGoals = normalizedAnswered.contains("interests") && 
+                                                    (normalizedAnswered.contains("goals") || normalizedAnswered.contains("goal"));
+                    if (isSimilarInterestsGoals) {
+                        log.info("Skipping interests/goals question as similar question already answered: {}", answeredQ);
+                        state.moveToNextQuestion();
+                        if (state.isComplete()) {
+                            return new ChatResponse(null, state, true);
+                        }
+                        nextQuestion = state.getCurrentQuestion();
+                        break;
+                    }
+                }
+            }
+        }
+        
         return new ChatResponse(nextQuestion, state, false);
     }
 
@@ -87,6 +153,7 @@ public class ChatbotService {
             if (profile.getCertifications() != null) map.put("certifications", profile.getCertifications());
             if (profile.getAchievements() != null) map.put("achievements", profile.getAchievements());
             if (profile.getHobbies() != null) map.put("hobbies", profile.getHobbies());
+            if (profile.getInterests() != null) map.put("interests", profile.getInterests());
             if (profile.getGoals() != null) map.put("goals", profile.getGoals());
         }
         return map;

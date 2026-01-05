@@ -2,10 +2,16 @@ package com.profiling.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.profiling.dto.EvaluationResult;
 import com.profiling.dto.UserProfile;
+import com.profiling.exception.BadRequestException;
+import com.profiling.util.AnswerQualityUtils;
 import com.profiling.util.JsonValidator;
 import com.profiling.util.ScoreUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -22,27 +28,42 @@ public class EvaluationService {
 
     private final OpenAIService openAIService;
     private final ObjectMapper objectMapper;
+    private static final Logger log = LoggerFactory.getLogger(EvaluationService.class);
 
     @Autowired
     public EvaluationService(OpenAIService openAIService) {
         this.openAIService = openAIService;
-        this.objectMapper = new ObjectMapper();
+        this.objectMapper = new ObjectMapper()
+                .registerModule(new JavaTimeModule())
+                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     }
 
     /**
      * Evaluate user profile and answers to generate comprehensive evaluation
      */
     public EvaluationResult evaluate(UserProfile userProfile, Map<String, String> answers) {
+        if (userProfile == null) {
+            log.warn("Evaluation requested with null user profile");
+            throw new BadRequestException("User profile is required");
+        }
+        if (answers == null || answers.isEmpty()) {
+            log.warn("Evaluation requested without answers");
+            throw new BadRequestException("Answers are required");
+        }
+
         // Convert profile to map
         Map<String, String> profileMap = profileToMap(userProfile);
+        Map<String, String> invalidAnswers = AnswerQualityUtils.collectInvalidAnswers(answers);
 
         // Call OpenAI to get evaluation JSON
-        String evaluationJson = openAIService.evaluateInterests(profileMap, answers);
+        log.info("Requesting evaluation from OpenAI");
+        String evaluationJson = openAIService.evaluateInterests(profileMap, answers, invalidAnswers);
 
         // Extract and clean JSON
         String cleanedJson = JsonValidator.extractJsonFromText(evaluationJson);
         if (!JsonValidator.isValidJson(cleanedJson)) {
-            throw new RuntimeException("Invalid JSON response from OpenAI");
+            log.error("Invalid JSON response received from OpenAI");
+            throw new BadRequestException("Invalid response received from AI service");
         }
 
         // Parse JSON to EvaluationResult
@@ -65,6 +86,8 @@ public class EvaluationService {
                 result.setPieChartValues(pieValues);
             }
         }
+
+        result.setInvalidAnswers(invalidAnswers);
 
         return result;
     }
@@ -179,7 +202,8 @@ public class EvaluationService {
 
             return result;
         } catch (Exception e) {
-            throw new RuntimeException("Failed to parse evaluation JSON: " + e.getMessage(), e);
+            log.error("Failed to parse evaluation JSON: {}", e.getMessage(), e);
+            throw new BadRequestException("Failed to parse evaluation result");
         }
     }
 
@@ -200,6 +224,7 @@ public class EvaluationService {
             if (profile.getCertifications() != null) map.put("certifications", profile.getCertifications());
             if (profile.getAchievements() != null) map.put("achievements", profile.getAchievements());
             if (profile.getHobbies() != null) map.put("hobbies", profile.getHobbies());
+            if (profile.getInterests() != null) map.put("interests", profile.getInterests());
             if (profile.getGoals() != null) map.put("goals", profile.getGoals());
         }
         return map;

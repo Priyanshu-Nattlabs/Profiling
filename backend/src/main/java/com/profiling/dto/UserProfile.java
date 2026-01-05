@@ -15,6 +15,7 @@ public class UserProfile {
     private String certifications;
     private String achievements;
     private String hobbies;
+    private String interests;
     private String goals;
 
     public UserProfile() {
@@ -106,6 +107,14 @@ public class UserProfile {
 
     public void setHobbies(String hobbies) {
         this.hobbies = hobbies;
+    }
+
+    public String getInterests() {
+        return interests;
+    }
+
+    public void setInterests(String interests) {
+        this.interests = interests;
     }
 
     public String getGoals() {

@@ -34,13 +34,16 @@ public class TemplateEngine {
         values.put("branch", valueOrDefault(profile.getBranch(), "[branch]"));
         values.put("institute", valueOrDefault(profile.getInstitute(), "[institute]"));
         values.put("yearOfStudy", valueOrDefault(profile.getYearOfStudy(), "[year]"));
-        values.put("certifications", valueOrDefault(profile.getCertifications(), "[certifications]"));
-        values.put("achievements", valueOrDefault(profile.getAchievements(), "[achievements]"));
+        values.put("certifications", valueOrDefault(profile.getCertifications(), ""));
+        values.put("achievements", valueOrDefault(profile.getAchievements(), ""));
         values.put("technicalSkills", valueOrDefault(profile.getTechnicalSkills(), "[technical skills]"));
         values.put("softSkills", valueOrDefault(profile.getSoftSkills(), "[soft skills]"));
         values.put("email", valueOrDefault(profile.getEmail(), "[email]"));
+        values.put("phone", valueOrDefault(profile.getPhone(), "[phone number]"));
         values.put("linkedin", valueOrDefault(profile.getLinkedin(), "[LinkedIn profile]"));
         values.put("dob", valueOrDefault(profile.getDob(), "[date of birth]"));
+        values.put("profileImage",
+                valueOrDefault(profile.getProfileImage(), "https://via.placeholder.com/420x520.png?text=Profile"));
         values.put("hiringManagerName", valueOrDefault(profile.getHiringManagerName(), "Hiring Manager"));
         values.put("companyName", valueOrDefault(profile.getCompanyName(), "[Company Name]"));
         values.put("companyAddress", valueOrDefault(profile.getCompanyAddress(), "[Company Address]"));

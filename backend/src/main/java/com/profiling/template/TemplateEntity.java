@@ -11,24 +11,24 @@ public class TemplateEntity {
     @Id
     private String id;
     private String name;
+    private String content;
     private String description;
     private String icon;
-    private String content;
     private String css;
+    private String userId;
+    private Boolean isUserCustomTemplate;
+    private Boolean enabled;
+    private String previewImageUrl;
     private Instant createdAt;
     private Instant updatedAt;
 
     public TemplateEntity() {
     }
 
-    public TemplateEntity(String id, String name, String description, String icon, String content, String css,
-            Instant createdAt, Instant updatedAt) {
+    public TemplateEntity(String id, String name, String content, Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.name = name;
-        this.description = description;
-        this.icon = icon;
         this.content = content;
-        this.css = css;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -49,36 +49,12 @@ public class TemplateEntity {
         this.name = name;
     }
 
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public String getIcon() {
-        return icon;
-    }
-
-    public void setIcon(String icon) {
-        this.icon = icon;
-    }
-
     public String getContent() {
         return content;
     }
 
     public void setContent(String content) {
         this.content = content;
-    }
-
-    public String getCss() {
-        return css;
-    }
-
-    public void setCss(String css) {
-        this.css = css;
     }
 
     public Instant getCreatedAt() {
@@ -95,6 +71,62 @@ public class TemplateEntity {
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getIcon() {
+        return icon;
+    }
+
+    public void setIcon(String icon) {
+        this.icon = icon;
+    }
+
+    public String getCss() {
+        return css;
+    }
+
+    public void setCss(String css) {
+        this.css = css;
+    }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
+    public Boolean getIsUserCustomTemplate() {
+        return isUserCustomTemplate;
+    }
+
+    public void setIsUserCustomTemplate(Boolean isUserCustomTemplate) {
+        this.isUserCustomTemplate = isUserCustomTemplate;
+    }
+
+    public Boolean getEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(Boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    public String getPreviewImageUrl() {
+        return previewImageUrl;
+    }
+
+    public void setPreviewImageUrl(String previewImageUrl) {
+        this.previewImageUrl = previewImageUrl;
     }
 }
 

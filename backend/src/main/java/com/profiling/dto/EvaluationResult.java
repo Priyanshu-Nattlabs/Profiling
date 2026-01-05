@@ -20,6 +20,7 @@ public class EvaluationResult {
     private List<String> suggestedCourses;
     private List<String> projectIdeas;
     private String summary;
+    private Map<String, String> invalidAnswers;
 
     public EvaluationResult() {
     }
@@ -126,6 +127,14 @@ public class EvaluationResult {
 
     public void setSummary(String summary) {
         this.summary = summary;
+    }
+
+    public Map<String, String> getInvalidAnswers() {
+        return invalidAnswers;
+    }
+
+    public void setInvalidAnswers(Map<String, String> invalidAnswers) {
+        this.invalidAnswers = invalidAnswers;
     }
 }
 

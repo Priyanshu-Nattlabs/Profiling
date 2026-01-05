@@ -3,7 +3,10 @@ package com.profiling.controller;
 import com.profiling.dto.EnhanceRequest;
 import com.profiling.dto.EnhanceResponse;
 import com.profiling.dto.ApiResponse;
+import com.profiling.exception.BadRequestException;
 import com.profiling.service.OpenAIService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -16,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 public class AIEnhanceController {
 
     private final OpenAIService openAIService;
+    private static final Logger log = LoggerFactory.getLogger(AIEnhanceController.class);
 
     @Autowired
     public AIEnhanceController(OpenAIService openAIService) {
@@ -29,39 +33,20 @@ public class AIEnhanceController {
      */
     @PostMapping(value = "/ai-enhance", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse> enhanceProfile(@RequestBody EnhanceRequest request) {
-        try {
-            if (request.getProfile() == null || request.getProfile().trim().isEmpty()) {
-                ApiResponse errorResponse = new ApiResponse("Profile text is required", null);
-                return ResponseEntity
-                        .status(HttpStatus.BAD_REQUEST)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .body(errorResponse);
-            }
-
-            String enhancedProfile = openAIService.enhanceProfile(request.getProfile());
-            EnhanceResponse responseDTO = new EnhanceResponse(enhancedProfile);
-            
-            ApiResponse response = new ApiResponse("Profile enhanced successfully", responseDTO);
-            return ResponseEntity
-                    .status(HttpStatus.OK)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(response);
-        } catch (IllegalArgumentException e) {
-            ApiResponse errorResponse = new ApiResponse(e.getMessage(), null);
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(errorResponse);
-        } catch (Exception e) {
-            ApiResponse errorResponse = new ApiResponse(
-                    "Failed to enhance profile: " + e.getMessage(), 
-                    null
-            );
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(errorResponse);
+        if (request.getProfile() == null || request.getProfile().trim().isEmpty()) {
+            log.warn("Enhance profile request missing profile text");
+            throw new BadRequestException("Profile text is required");
         }
+
+        log.info("Enhancing profile text via AI");
+        String enhancedProfile = openAIService.enhanceProfile(request.getProfile());
+        EnhanceResponse responseDTO = new EnhanceResponse(enhancedProfile);
+
+        ApiResponse response = new ApiResponse("Profile enhanced successfully", responseDTO);
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(response);
     }
 }
 

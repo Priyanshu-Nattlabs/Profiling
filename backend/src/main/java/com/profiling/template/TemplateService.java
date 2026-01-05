@@ -5,15 +5,28 @@ import java.util.Optional;
 
 public interface TemplateService {
 
-    Optional<TemplateEntity> getTemplateByType(String type);
+    Optional<TemplateEntity> getTemplateByType(String type, String userId);
 
-    TemplateEntity saveTemplate(TemplateEntity template);
+    TemplateEntity saveTemplate(TemplateEntity template, String userId);
 
-    TemplateEntity updateTemplate(String type, TemplateEntity updateRequest);
+    TemplateEntity updateTemplate(String type, TemplateEntity updateRequest, String userId);
 
-    List<TemplateEntity> listAllTemplates();
+    List<TemplateEntity> listDefaultTemplates(); // Global templates (userId = null)
 
-    void deleteTemplate(String type);
+    List<TemplateEntity> listCustomTemplates(String userId); // User custom templates
+
+    List<TemplateEntity> listAllTemplatesForUser(String userId); // Both default + custom
+
+    void deleteTemplate(String type, String userId);
+
+    // Admin methods for global templates
+    List<TemplateEntity> listAllDefaultTemplates(); // Alias for listDefaultTemplates
+
+    TemplateEntity saveGlobalTemplate(TemplateEntity template);
+
+    TemplateEntity updateGlobalTemplate(String type, TemplateEntity template);
+
+    void deleteGlobalTemplate(String type);
 }
 
 

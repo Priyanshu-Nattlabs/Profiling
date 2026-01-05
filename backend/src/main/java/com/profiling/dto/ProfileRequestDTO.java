@@ -4,6 +4,7 @@ public class ProfileRequestDTO {
 
     private String name;
     private String email;
+    private String phone;
     private String dob;
     private String linkedin;
     private String institute;
@@ -14,6 +15,8 @@ public class ProfileRequestDTO {
     private String achievements;
     private String technicalSkills;
     private String softSkills;
+    private String hobbies;
+    private String interests;
     private String templateType;
     private String hiringManagerName;
     private String companyName;
@@ -27,6 +30,9 @@ public class ProfileRequestDTO {
     private String internshipDetails;
     private Boolean hasExperience;
     private String experienceDetails;
+    private String workExperience;
+    private String profileImage;
+    private String aiEnhancedTemplateText;
 
     public String getName() {
         return name;
@@ -42,6 +48,14 @@ public class ProfileRequestDTO {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
     }
 
     public String getDob() {
@@ -122,6 +136,22 @@ public class ProfileRequestDTO {
 
     public void setSoftSkills(String softSkills) {
         this.softSkills = softSkills;
+    }
+
+    public String getHobbies() {
+        return hobbies;
+    }
+
+    public void setHobbies(String hobbies) {
+        this.hobbies = hobbies;
+    }
+
+    public String getInterests() {
+        return interests;
+    }
+
+    public void setInterests(String interests) {
+        this.interests = interests;
     }
 
     public String getTemplateType() {
@@ -226,6 +256,30 @@ public class ProfileRequestDTO {
 
     public void setExperienceDetails(String experienceDetails) {
         this.experienceDetails = experienceDetails;
+    }
+
+    public String getWorkExperience() {
+        return workExperience;
+    }
+
+    public void setWorkExperience(String workExperience) {
+        this.workExperience = workExperience;
+    }
+
+    public String getProfileImage() {
+        return profileImage;
+    }
+
+    public void setProfileImage(String profileImage) {
+        this.profileImage = profileImage;
+    }
+
+    public String getAiEnhancedTemplateText() {
+        return aiEnhancedTemplateText;
+    }
+
+    public void setAiEnhancedTemplateText(String aiEnhancedTemplateText) {
+        this.aiEnhancedTemplateText = aiEnhancedTemplateText;
     }
 }
 

@@ -10,8 +10,8 @@ import java.util.Map;
  */
 public class ChatState {
     private int currentStage; // 1, 2, or 3
-    private int currentQuestionIndex; // 0-3 within current stage
-    private List<String> questions; // All 12 questions
+    private int currentQuestionIndex; // 0-4 within current stage (5 questions per stage)
+    private List<String> questions; // All 15 questions
     private Map<String, String> answers; // question -> answer mapping
     private String pendingWhyQuestion; // If a WHY follow-up is needed
     private boolean isComplete; // Whether all questions are answered
@@ -81,7 +81,7 @@ public class ChatState {
         if (questions == null || questions.isEmpty()) {
             return null;
         }
-        int globalIndex = (currentStage - 1) * 4 + currentQuestionIndex;
+        int globalIndex = (currentStage - 1) * 5 + currentQuestionIndex;
         if (globalIndex < questions.size()) {
             return questions.get(globalIndex);
         }
@@ -90,12 +90,17 @@ public class ChatState {
 
     public void moveToNextQuestion() {
         currentQuestionIndex++;
-        if (currentQuestionIndex >= 4) {
+        if (currentQuestionIndex >= 5) {
             currentQuestionIndex = 0;
             currentStage++;
             if (currentStage > 3) {
                 isComplete = true;
             }
+        }
+        // Safety check: ensure we don't exceed 15 questions total
+        int globalIndex = (currentStage - 1) * 5 + currentQuestionIndex;
+        if (globalIndex >= 15 || (questions != null && globalIndex >= questions.size())) {
+            isComplete = true;
         }
     }
 }

@@ -4,7 +4,7 @@ services:
     image: mongo:7
     container_name: profiling-mongodb
     ports:
-      - "27017:27017"
+      - "37017:27017"
     environment:
       MONGO_INITDB_DATABASE: profiling_db
     volumes:
@@ -21,11 +21,17 @@ services:
       dockerfile: Dockerfile
     container_name: profiling-backend
     ports:
-      - "8080:8080"
+      - "9090:9090"
     environment:
       MONGODB_URI: mongodb://mongodb:27017/profiling_db
       MONGODB_DATABASE: profiling_db
-      
+      OPENAI_API_KEY: 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
+      JWT_SECRET: 8815727f93bb4615680142cab0856d6e1ec482c2621817b2fffe6699e881f22e
+      GOOGLE_CLIENT_ID: 353791870664-do1vnd9gsqv9654bnt09dn9nvb32dcqh.apps.googleusercontent.com
+      GOOGLE_CLIENT_SECRET: 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
+      FRONTEND_URL: http://localhost:4000
+    volumes:
+      - backend_uploads:/app/uploads
     depends_on:
       - mongodb
     networks:
@@ -38,10 +44,10 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_BASE_URL: http://localhost:8080
+        VITE_API_BASE_URL: http://localhost:9090
     container_name: profiling-frontend
     ports:
-      - "3000:3000"
+      - "4000:4000"
     depends_on:
       - backend
     networks:
@@ -50,6 +56,7 @@ services:
 
 volumes:
   mongodb_data:
+  backend_uploads:
 
 networks:
   profiling-network:
