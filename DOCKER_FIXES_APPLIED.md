@@ -2,9 +2,9 @@
 
 ## Issues Fixed:
 
-### 1. **Frontend Port Configuration** ✅
-- **Issue**: Dockerfile and nginx.conf port configuration mismatch
-- **Fix**: Configured both to use port 4000 (`EXPOSE 4000` in `frontend/Dockerfile` and `listen 4000` in `nginx.conf`)
+### 1. **Frontend Port Mismatch** ✅
+- **Issue**: Dockerfile exposed port 4000 but nginx.conf listens on 3000
+- **Fix**: Changed `EXPOSE 4000` to `EXPOSE 3000` in `frontend/Dockerfile`
 
 ### 2. **Backend Build Optimization** ✅
 - **Issue**: Tests were running during Docker build, causing failures
@@ -15,8 +15,8 @@
 - **Fix**: Merged duplicate scripts into single "scripts" object
 
 ### 4. **MongoDB Port Configuration** ✅
-- **Issue**: Default MongoDB port configuration
-- **Fix**: Updated `application.properties` default port to 57017
+- **Issue**: Default MongoDB port was 37017 instead of 27017
+- **Fix**: Updated `application.properties` default port to 27017
 
 ### 5. **Service Dependencies** ✅
 - **Issue**: Services starting before dependencies were ready
@@ -55,9 +55,9 @@ docker compose logs -f mongodb
 
 ## Service URLs:
 
-- **Frontend**: http://localhost:4000
+- **Frontend**: http://localhost:3000
 - **Backend API**: http://localhost:9090
-- **MongoDB**: localhost:57017
+- **MongoDB**: localhost:27017
 
 ## Troubleshooting:
 
@@ -84,9 +84,9 @@ If you encounter errors:
 4. **Check if ports are already in use**:
    ```bash
    # Windows PowerShell
-   netstat -ano | findstr :4000
+   netstat -ano | findstr :3000
    netstat -ano | findstr :9090
-   netstat -ano | findstr :57017
+   netstat -ano | findstr :27017
    ```
 
 5. **Verify environment variables**:
@@ -128,7 +128,7 @@ cd backend
 
 1. Run `docker compose up --build`
 2. Wait for all services to be healthy
-3. Access frontend at http://localhost:4000
+3. Access frontend at http://localhost:3000
 4. Check backend API at http://localhost:9090/api/templates/all
 
 All fixes have been applied! 🎉

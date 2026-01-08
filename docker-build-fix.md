@@ -2,11 +2,11 @@
 
 ## Issues Fixed:
 
-1. **Frontend Port Configuration**: Configured EXPOSE to 4000 in Dockerfile to match nginx.conf
+1. **Frontend Port Mismatch**: Changed EXPOSE from 4000 to 3000 in Dockerfile to match nginx.conf
 2. **API URL Configuration**: Changed VITE_API_BASE_URL from localhost to backend service name
 3. **Backend Build**: Removed test execution from Docker build (tests run in CI/CD, not Docker builds)
 4. **Package.json**: Fixed duplicate "scripts" key
-5. **MongoDB Port**: Configured MongoDB port to 57017
+5. **MongoDB Port**: Fixed default MongoDB port from 37017 to 27017
 
 ## To Build and Run:
 
@@ -44,6 +44,6 @@ If you still encounter errors:
 
 ## Service URLs:
 
-- Frontend: http://localhost:4000
+- Frontend: http://localhost:3000
 - Backend API: http://localhost:9090
-- MongoDB: localhost:57017
+- MongoDB: localhost:27017

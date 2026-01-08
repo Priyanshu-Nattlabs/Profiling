@@ -18,10 +18,10 @@ docker compose up --build -d
 
 ## 📋 What Was Fixed
 
-✅ Frontend port configured to 4000  
+✅ Frontend port mismatch (4000 → 3000)  
 ✅ Backend tests removed from Docker build  
 ✅ Package.json duplicate scripts key fixed  
-✅ MongoDB port configured to 57017  
+✅ MongoDB port corrected (37017 → 27017)  
 ✅ Service healthchecks added  
 ✅ Proper service dependencies configured  
 
@@ -35,7 +35,7 @@ docker compose ps
 docker compose logs -f
 
 # Test endpoints
-# Frontend: http://localhost:4000
+# Frontend: http://localhost:3000
 # Backend: http://localhost:9090/api/templates/all
 ```
 
@@ -43,7 +43,7 @@ docker compose logs -f
 
 1. **Check logs**: `docker compose logs backend`
 2. **Rebuild without cache**: `docker compose build --no-cache`
-3. **Check ports**: Ensure 4000, 9090, 57017 are free
+3. **Check ports**: Ensure 3000, 9090, 27017 are free
 4. **Docker resources**: Ensure Docker has 4GB+ RAM allocated
 
 ## 📝 Service Health
