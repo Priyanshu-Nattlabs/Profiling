@@ -3,6 +3,10 @@
 .env.local
 .env.*.local
 
+# Docker Compose with credentials
+docker-compose.yml
+docker-compose.override.yml
+
 # IDE
 .idea/
 .vscode/
@@ -23,4 +27,26 @@ npm-debug.log*
 # Temporary files
 *.tmp
 *.bak
+
+# Credentials and sensitive files
+*.secrets
+*.key
+*.pem
+*.p12
+*.jks
+*.cert
+
+# Application properties with secrets
+backend/src/main/resources/application-local.properties
+backend/src/main/resources/application-secrets.properties
+
+# Uploads and user data
+backend/uploads/
+profiles/
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!tsconfig.*.json
+
 

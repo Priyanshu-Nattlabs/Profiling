@@ -1,5 +1,5 @@
-# Use Node 18 as base image
-FROM node:18 AS builder
+# Use Node 20 as base image (required for react-router-dom@7.10.1)
+FROM node:20 AS builder
 
 # Set working directory
 WORKDIR /app
@@ -11,8 +11,10 @@ ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 # Copy package files
 COPY package.json package-lock.json ./
 
-# Install dependencies
-RUN npm ci
+# Install dependencies with retry logic for network issues
+RUN npm ci --prefer-offline --no-audit || \
+    (sleep 5 && npm ci --prefer-offline --no-audit) || \
+    (sleep 10 && npm ci --prefer-offline --no-audit)
 
 # Copy source code
 COPY . .

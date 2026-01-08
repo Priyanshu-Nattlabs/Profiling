@@ -16,15 +16,18 @@ RUN gradle dependencies --no-daemon || true
 COPY src ./src
 
 # Build the application (creates executable JAR)
-# Add retries and better network handling
-RUN gradle bootJar -x test --no-daemon \
-    --refresh-dependencies \
-    --max-workers=2 \
-    -Dorg.gradle.daemon=false \
-    -Dorg.gradle.parallel=false
+# Skip tests in Docker build for faster builds (tests run in CI/CD)
+RUN gradle bootJar --no-daemon \
+        --max-workers=2 \
+        -Dorg.gradle.daemon=false \
+        -Dorg.gradle.parallel=false \
+        -x test
 
 # Production stage
 FROM eclipse-temurin:17-jre
+
+# Install netcat for healthcheck
+RUN apt-get update && apt-get install -y netcat-openbsd && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app

@@ -213,8 +213,7 @@ const Dashboard = ({ onStartProfiling, onViewSaved, onPsychometricTest, onViewSa
                 <button
                   type="button"
                   onClick={onPsychometricTest}
-                  disabled
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full border border-white/60 px-5 sm:px-6 py-2.5 sm:py-3 text-sm font-semibold text-white transition opacity-50 cursor-not-allowed"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full border border-white/60 px-5 sm:px-6 py-2.5 sm:py-3 text-sm font-semibold text-white transition hover:bg-white/10"
                 >
                   <FaLightbulb className="h-4 w-4" />
                   Psychometric Test
@@ -223,8 +222,7 @@ const Dashboard = ({ onStartProfiling, onViewSaved, onPsychometricTest, onViewSa
                   <button
                     type="button"
                     onClick={onViewSavedReports}
-                    disabled
-                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full border border-white/60 px-5 sm:px-6 py-2.5 sm:py-3 text-sm font-semibold text-white transition opacity-50 cursor-not-allowed"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full border border-white/60 px-5 sm:px-6 py-2.5 sm:py-3 text-sm font-semibold text-white transition hover:bg-white/10"
                   >
                     📊 View Saved Reports
                   </button>
