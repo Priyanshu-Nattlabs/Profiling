@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Profiling & Psychometry Platform - High-Level Design Diagrams</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 1.2em;
+        }
+        .diagram-section {
+            margin-bottom: 60px;
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 5px solid #667eea;
+        }
+        .diagram-section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        .diagram-section p {
+            color: #666;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        .diagram-container { 
+            padding: 20px; 
+            margin: 20px 0; 
+            border: 2px solid #e9ecef; 
+            display: block; 
+            background: white;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+        .flow-description {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+        .flow-description h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .flow-description ul {
+            margin-left: 20px;
+            color: #555;
+        }
+        .flow-description li {
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Profiling & Psychometry Platform</h1>
+        <p class="subtitle">High-Level Design Diagrams - Complete System Architecture & Service Flows</p>
+
+        <script type="module">
+            import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+            mermaid.initialize({ 
+                startOnLoad: true, 
+                theme: 'default',
+                themeVariables: {
+                    primaryColor: '#667eea',
+                    primaryTextColor: '#fff',
+                    primaryBorderColor: '#5568d3',
+                    lineColor: '#667eea',
+                    secondaryColor: '#764ba2',
+                    tertiaryColor: '#f8f9fa'
+                }
+            });
+        </script>
+
+        <!-- Section 1: System Context & Architecture -->
+        <div class="diagram-section">
+            <h2>1. System Context & Architecture</h2>
+            <div class="flow-description">
+                <h3>Overview</h3>
+                <p>High-level system architecture showing platform components, external integrations, and data flow.</p>
+                <ul>
+                    <li><strong>Client Layer:</strong> React frontend accessing platform via REST API</li>
+                    <li><strong>Backend Services:</strong> Spring Boot modular monolith with Auth, Profile, Psychometric, and Chatbot modules</li>
+                    <li><strong>External Services:</strong> OpenAI for AI features (profiling, chatbot, report generation)</li>
+                    <li><strong>Database:</strong> MongoDB cluster for data persistence</li>
+                    <li><strong>Storage:</strong> File system for PDF reports and uploads</li>
+                </ul>
+            </div>
+            <div id="d0_system_context" class="diagram-container">
+                <div class="mermaid">
+graph TD
+    Client[React Frontend] <-->|REST API / HTTPS| Backend[Spring Boot Backend]
+    
+    subgraph "Backend Services (Port 9090)"
+    Auth[Auth Module]
+    Profile[Profile Module]
+    Psychometric[Psychometric Module]
+    Chatbot[Interest Evaluation]
+    Template[Template Management]
+    Report[Report Generation]
+    Proctoring[Proctoring Service]
+    end
+    
+    Backend <-->|Read/Write| Mongo[(MongoDB Cluster<br/>Port 57017)]
+    
+    Backend -->|AI Generation| OpenAI[OpenAI API<br/>GPT-3.5/GPT-4]
+    Backend -->|File Storage| FS[File System<br/>/app/uploads]
+    
+    style Mongo fill:#667eea,stroke:#5568d3,color:#fff
+    style Backend fill:#764ba2,stroke:#653a8f,color:#fff
+    style OpenAI fill:#38ef7d,stroke:#2dd47e,color:#fff
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: User Authentication Flow -->
+        <div class="diagram-section">
+            <h2>2. User Authentication Flow</h2>
+            <div class="flow-description">
+                <h3>Overview</h3>
+                <p>Complete authentication flow for users including registration, login, and JWT token management.</p>
+                <ul>
+                    <li><strong>Registration:</strong> Email validation, password hashing (BCrypt), user creation</li>
+                    <li><strong>Login:</strong> Credential validation, password matching, JWT token generation</li>
+                    <li><strong>Google OAuth:</strong> Optional Google authentication integration</li>
+                </ul>
+            </div>
+            <div id="d1_user_auth" class="diagram-container">
+                <div class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant FE as Frontend
+    participant AC as AuthController
+    participant AS as AuthService
+    participant DB as MongoDB
+
+    Note over U, DB: Registration
+    U->>FE: Fill Signup Form
+    FE->>AC: POST /api/auth/signup
+    AC->>AS: validate & create()
+    AS->>AS: Hash Password (BCrypt)
+    AS->>DB: Save User (Role=USER)
+    AS-->>AC: User Object
+    AC-->>FE: Success + JWT Token
+
+    Note over U, DB: Login
+    U->>FE: Enter Credentials
+    FE->>AC: POST /api/auth/login
+    AC->>AS: login(email, password)
+    AS->>DB: Find User by Email
+    DB-->>AS: UserHash
+    AS->>AS: BCrypt.match()
+    AS-->>AC: Valid User
+    AC->>AC: Generate JWT Token
+    AC-->>FE: JWT Token + User Info
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3: Admin Authentication Flow -->
+        <div class="diagram-section">
+            <h2>3. Admin Authentication & Authorization Flow</h2>
+            <div class="flow-description">
+                <h3>Overview</h3>
+                <p>Role-based access control for admin users with JWT validation and role checking.</p>
+                <ul>
+                    <li><strong>JWT Validation:</strong> Token signature validation and user ID extraction</li>
+                    <li><strong>Role Checking:</strong> Database lookup for admin roles</li>
+                    <li><strong>Access Control:</strong> 403 Forbidden for invalid or missing admin role</li>
+                </ul>
+            </div>
+            <div id="d2_admin_auth" class="diagram-container">
+                <div class="mermaid">
+sequenceDiagram
+    participant A as Admin User
+    participant FE as Frontend
+    participant AC as AdminAuthController
+    participant AS as AuthService
+    participant DB as MongoDB
+
+    A->>FE: Access Admin Endpoint
+    FE->>AC: GET /api/admin/* (Auth Header)
+    
+    Note over AC: Pre-Handle Check
+    AC->>AC: Validate JWT Signature
+    AC->>AC: Extract UserID
+    AC->>DB: Fetch User Roles
+    DB-->>AC: Roles=['ADMIN']
+    
+    alt is Valid Admin
+        AC->>AS: Proceed to Service
+        AS->>DB: Fetch Admin Data
+        DB-->>AS: Data
+        AS-->>FE: Admin Response
+    else Invalid/No Role
+        AC-->>FE: 403 Forbidden
+    end
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 4: Profile Management Flow -->
+        <div class="diagram-section">
+            <h2>4. Profile Creation & Management Flow</h2>
+            <div class="flow-description">
+                <h3>Overview</h3>
+                <p>Complete flow for creating, enhancing, and managing user profiles with AI-powered enhancements.</p>
+                <ul>
+                    <li><strong>Profile Creation:</strong> Multi-step form with template selection</li>
+                    <li><strong>AI Enhancement:</strong> OpenAI-powered profile text enhancement</li>
+                    <li><strong>Resume Parsing:</strong> Extract data from uploaded resumes</li>
+                    <li><strong>Profile Export:</strong> JSON and PDF export capabilities</li>
+                </ul>
+            </div>
+            <div id="d3_profile_flow" class="diagram-container">
+                <div class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant FE as Frontend
+    participant PC as ProfileController
+    participant PS as ProfileService
+    participant AI as AIEnhanceService
+    participant OAI as OpenAI API
+    participant DB as MongoDB
+
+    Note over U, DB: Profile Creation
+    U->>FE: Fill Profile Form (Multi-step)
+    FE->>PC: POST /api/profiles
+    PC->>PS: createProfile(profileData)
+    PS->>DB: Save Profile
+    DB-->>PS: Profile ID
+    PS-->>PC: Created Profile
+    PC-->>FE: Profile Response
+
+    Note over U, DB: AI Enhancement
+    U->>FE: Click "Enhance with AI"
+    FE->>PC: POST /api/ai-enhance
+    PC->>AI: enhanceProfile(profileId)
+    AI->>DB: Fetch Profile
+    AI->>OAI: Generate Enhanced Text
+    OAI-->>AI: Enhanced Content
+    AI->>DB: Update Profile
+    AI-->>PC: Enhanced Profile
+    PC-->>FE: Updated Profile
+
+    Note over U, DB: Resume Parsing
+    U->>FE: Upload Resume PDF
+    FE->>PC: POST /api/parse-resume
+    PC->>PS: parseResume(file)
+    PS->>OAI: Extract Resume Data
+    OAI-->>PS: Parsed Data
+    PS-->>PC: Extracted Fields
+    PC-->>FE: Pre-filled Form Data
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 5: Psychometric Test Flow -->
+        <div class="diagram-section">
+            <h2>5. Psychometric Test - Complete Flow</h2>
+            <div class="flow-description">
+                <h3>Overview</h3>
+                <p>End-to-end flow for psychometric testing including session creation, question generation, proctoring, and report generation.</p>
+                <ul>
+                    <li><strong>Session Creation:</strong> Initialize test session with user information</li>
+                    <li><strong>Question Generation:</strong> AI-generated questions (120 total: 40 Aptitude, 40 Behavioral, 40 Domain)</li>
+                    <li><strong>Proctoring:</strong> Real-time violation detection (face detection, tab switching, etc.)</li>
+                    <li><strong>Test Submission:</strong> Score calculation and result processing</li>
+                    <li><strong>Report Generation:</strong> Comprehensive PDF report with insights</li>
+                </ul>
+            </div>
+            <div id="d4_psychometric_flow" class="diagram-container">
+                <div class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant FE as Frontend
+    participant PSC as PsychometricSessionController
+    participant PSS as PsychometricSessionService
+    participant QGS as QuestionGenerationService
+    participant OAI as OpenAI API
+    participant P as ProctoringService
+    participant RGS as ReportGenerationService
+    participant DB as MongoDB
+
+    Note over U, DB: Phase 1: Session Creation
+    U->>FE: Start Psychometric Test
+    FE->>PSC: POST /api/psychometric/sessions
+    PSC->>PSS: createSession(userInfo)
+    PSS->>DB: Save Session (Status: CREATED)
+    DB-->>PSS: Session ID
+    PSS-->>PSC: Session Created
+    PSC-->>FE: Session ID
+
+    Note over U, DB: Phase 2: Question Generation
+    FE->>PSC: GET /api/psychometric/sessions/{id}/questions
+    PSC->>PSS: getQuestions(sessionId)
+    PSS->>QGS: generateQuestions(section, skills)
+    QGS->>OAI: Generate 40 Questions (Section-specific)
+    OAI-->>QGS: Questions Array
+    QGS->>DB: Save Questions to Session
+    QGS-->>PSS: Questions
+    PSS-->>PSC: Questions Response
+    PSC-->>FE: Questions (120 total)
+
+    Note over U, DB: Phase 3: Test Execution (Parallel Proctoring)
+    loop For each Question
+        U->>FE: Select Answer
+        FE->>FE: Store Answer Locally
+        FE->>P: Monitor Proctoring (Face, Tab, etc.)
+        P->>PSC: POST /api/test/log-cheat-event (if violation)
+        PSC->>DB: Log Violation
+    end
+
+    Note over U, DB: Phase 4: Test Submission
+    U->>FE: Submit Test
+    FE->>PSC: POST /api/test/submit
+    PSC->>PSS: submitTest(answers)
+    PSS->>PSS: Calculate Scores
+    PSS->>DB: Update Session (Status: COMPLETED)
+    PSS-->>PSC: Test Results
+    PSC-->>FE: Scores & Status
+
+    Note over U, DB: Phase 5: Report Generation
+    U->>FE: Generate Report
+    FE->>PSC: POST /api/psychometric/sessions/{id}/generate-report
+    PSC->>RGS: generateReport(sessionId)
+    RGS->>DB: Fetch Session & Answers
+    RGS->>OAI: Analyze & Generate Report
+    OAI-->>RGS: Report Data (SWOT, Big Five, Insights)
+    RGS->>DB: Save Report to Session
+    RGS-->>PSC: Report Generated
+    PSC-->>FE: Report Available
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 6: Interest Evaluation Chatbot Flow -->
+        <div class="diagram-section">
+            <h2>6. Interest Evaluation Chatbot Flow</h2>
+            <div class="flow-description">
+                <h3>Overview</h3>
+                <p>AI-powered chatbot for career interest evaluation with personalized questions and comprehensive analysis.</p>
+                <ul>
+                    <li><strong>Question Generation:</strong> 12 personalized questions based on user profile (3 stages)</li>
+                    <li><strong>Chat Flow:</strong> Interactive Q&A with adaptive WHY follow-ups</li>
+                    <li><strong>Evaluation:</strong> Comprehensive interest analysis with recommendations</li>
+                </ul>
+            </div>
+            <div id="d5_chatbot_flow" class="diagram-container">
+                <div class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant FE as Frontend
+    participant QC as QuestionController
+    participant CC as ChatController
+    participant EC as EvaluationController
+    participant CS as ChatbotService
+    participant ES as EvaluationService
+    participant OAI as OpenAI API
+    participant DB as MongoDB
+
+    Note over U, DB: Phase 1: Question Generation
+    U->>FE: Start Interest Evaluation
+    FE->>QC: POST /api/generate-questions
+    QC->>CS: generateQuestions(userProfile)
+    CS->>OAI: Generate 12 Personalized Questions
+    OAI-->>CS: Questions (3 Stages: Technical, Creative, Leadership)
+    CS-->>QC: Questions Array
+    QC-->>FE: Questions
+
+    Note over U, DB: Phase 2: Chat Interaction
+    loop For each Question
+        U->>FE: Answer Question
+        FE->>CC: POST /api/chat (answer + state)
+        CC->>CS: processChat(chatRequest)
+        CS->>CS: Update Chat State
+        alt Substantial Answer
+            CS->>OAI: Generate WHY Follow-up
+            OAI-->>CS: Follow-up Question
+            CS-->>CC: WHY Question
+        else Standard Answer
+            CS-->>CC: Next Question
+        end
+        CC-->>FE: Next Question or Completion
+    end
+
+    Note over U, DB: Phase 3: Final Evaluation
+    U->>FE: Complete All Questions
+    FE->>EC: POST /api/evaluate
+    EC->>ES: evaluate(userProfile, answers)
+    ES->>OAI: Comprehensive Analysis (JSON Mode)
+    OAI-->>ES: Evaluation Result (Scores, Persona, Recommendations)
+    ES->>ES: Normalize Scores
+    ES-->>EC: EvaluationResult
+    EC-->>FE: Complete Evaluation (Interest Scores, Roadmap, Courses)
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 7: Data Model - Entity Relationship -->
+        <div class="diagram-section">
+            <h2>7. Data Model - Entity Relationship Diagram</h2>
+            <div class="flow-description">
+                <h3>Overview</h3>
+                <p>Entity relationship diagram showing the core data models and their relationships in MongoDB.</p>
+                <ul>
+                    <li><strong>User:</strong> Authentication and user management</li>
+                    <li><strong>Profile:</strong> User career profiles with multiple templates</li>
+                    <li><strong>PsychometricSession:</strong> Test sessions with questions, answers, and reports</li>
+                    <li><strong>Template:</strong> Profile template definitions</li>
+                </ul>
+            </div>
+            <div id="d6_er_diagram" class="diagram-container">
+                <div class="mermaid">
+erDiagram
+    User {
+        string id
+        string email
+        string password "BCrypt hashed"
+        string name
+        string role "USER/ADMIN"
+        string googleId
+        string provider "local/google"
+    }
+    
+    Profile {
+        string id
+        string userId
+        string name
+        string email
+        string templateType "professional/bio/story/cover"
+        string aiEnhancedTemplateText
+        string profileImage
+        object profileData "JSON fields"
+    }
+    
+    PsychometricSession {
+        string id
+        object userInfo
+        string status "CREATED/IN_PROGRESS/COMPLETED"
+        array questions "120 questions"
+        array answers
+        object report "PsychometricReport"
+        array proctoringViolations
+        object testResults
+    }
+    
+    PsychometricReport {
+        object userInfo
+        string summaryBio
+        array strengths
+        array weaknesses
+        integer openness "Big Five"
+        integer conscientiousness
+        integer extraversion
+        integer agreeableness
+        integer neuroticism
+        double aptitudeScore
+        double behavioralScore
+        double domainScore
+        double overallScore
+        string fitAnalysis
+    }
+    
+    Template {
+        string id
+        string name
+        string type
+        string previewImage
+        object templateStructure
+    }
+    
+    SavedPsychometricReport {
+        string id
+        string userId
+        string sessionId
+        object reportData
+        timestamp createdAt
+    }
+    
+    User ||--o{ Profile : "creates"
+    User ||--o{ PsychometricSession : "takes"
+    PsychometricSession ||--|| PsychometricReport : "generates"
+    User ||--o{ SavedPsychometricReport : "saves"
+    PsychometricSession ||--o| SavedPsychometricReport : "references"
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 8: Report Generation & Download Flow -->
+        <div class="diagram-section">
+            <h2>8. Report Generation & Download Flow</h2>
+            <div class="flow-description">
+                <h3>Overview</h3>
+                <p>Complete flow for generating, saving, and downloading psychometric reports in PDF format.</p>
+                <ul>
+                    <li><strong>Report Generation:</strong> AI-powered comprehensive analysis</li>
+                    <li><strong>PDF Creation:</strong> Convert report data to PDF format</li>
+                    <li><strong>Report Saving:</strong> Save reports for future reference</li>
+                    <li><strong>Download:</strong> Download PDF reports and answer sheets</li>
+                </ul>
+            </div>
+            <div id="d7_report_flow" class="diagram-container">
+                <div class="mermaid">
+graph TD
+    subgraph Report Generation
+    U[User] -->|Request Report| FE[Frontend]
+    FE -->|POST /generate-report| BE[Backend]
+    BE -->|Fetch Session| DB[(MongoDB)]
+    BE -->|Analyze Data| AI[OpenAI API]
+    AI -->|Report JSON| BE
+    BE -->|Save Report| DB
+    end
+
+    subgraph PDF Generation
+    BE -->|Generate PDF| PDF[PDF Service]
+    PDF -->|Create PDF| FS[File System]
+    PDF -->|Return PDF URL| BE
+    end
+
+    subgraph Report Management
+    BE -->|Save Report| SR[Saved Reports]
+    SR -->|Store| DB
+    U -->|View Saved| FE
+    FE -->|GET /saved-reports| BE
+    BE -->|Fetch| DB
+    end
+
+    subgraph Download
+    U -->|Download PDF| FE
+    FE -->|GET /download| BE
+    BE -->|Stream PDF| FE
+    FE -->|Save File| U
+    end
+
+    style DB fill:#667eea,stroke:#5568d3,color:#fff
+    style AI fill:#38ef7d,stroke:#2dd47e,color:#fff
+    style PDF fill:#764ba2,stroke:#653a8f,color:#fff
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 9: Proctoring System Flow -->
+        <div class="diagram-section">
+            <h2>9. Proctoring System Flow</h2>
+            <div class="flow-description">
+                <h3>Overview</h3>
+                <p>Real-time proctoring system for monitoring test sessions and detecting violations.</p>
+                <ul>
+                    <li><strong>Violation Detection:</strong> Face detection, tab switching, multiple faces, etc.</li>
+                    <li><strong>Event Logging:</strong> Real-time violation logging to database</li>
+                    <li><strong>Session Monitoring:</strong> Continuous monitoring during test execution</li>
+                </ul>
+            </div>
+            <div id="d8_proctoring_flow" class="diagram-container">
+                <div class="mermaid">
+sequenceDiagram
+    participant FE as Frontend (Proctoring)
+    participant PC as ProctoringController
+    participant PSS as PsychometricSessionService
+    participant DB as MongoDB
+
+    Note over FE, DB: Continuous Monitoring
+    loop During Test
+        FE->>FE: Capture Video/Audio
+        FE->>FE: Detect Violations
+        
+        alt Violation Detected
+            FE->>PC: POST /api/test/log-cheat-event
+            PC->>PSS: logCheatEvent(violation)
+            PSS->>DB: Save Violation Record
+            PSS-->>PC: Violation Logged
+            PC-->>FE: Acknowledgment
+        end
+    end
+
+    Note over FE, DB: Violation Types
+    FE->>FE: Multiple Faces Detected
+    FE->>FE: Tab Switch Detected
+    FE->>FE: Audio Muted/Unmuted
+    FE->>FE: Screen Share Detected
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 10: Profile Enhancement with Psychometric Report -->
+        <div class="diagram-section">
+            <h2>10. Profile Enhancement with Psychometric Report Flow</h2>
+            <div class="flow-description">
+                <h3>Overview</h3>
+                <p>Integration flow for enhancing user profiles using psychometric test results and insights.</p>
+                <ul>
+                    <li><strong>Report Integration:</strong> Use psychometric insights to enhance profile</li>
+                    <li><strong>AI Enhancement:</strong> Combine profile data with test results for better recommendations</li>
+                    <li><strong>Paragraph Enhancement:</strong> Enhance specific profile sections with report insights</li>
+                </ul>
+            </div>
+            <div id="d9_enhancement_flow" class="diagram-container">
+                <div class="mermaid">
+graph LR
+    subgraph Data Sources
+    P[User Profile] -->|Combine| E[Enhancement Service]
+    PR[Psychometric Report] -->|Insights| E
+    end
+
+    subgraph AI Processing
+    E -->|Send Combined Data| AI[OpenAI API]
+    AI -->|Enhanced Content| E
+    end
+
+    subgraph Result
+    E -->|Update| P2[Enhanced Profile]
+    E -->|Save| DB[(MongoDB)]
+    end
+
+    style AI fill:#38ef7d,stroke:#2dd47e,color:#fff
+    style DB fill:#667eea,stroke:#5568d3,color:#fff
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 2px solid #eee; color: #666;">
+            <p><strong>Document Version:</strong> 1.0</p>
+            <p><strong>Last Updated:</strong> 2026-01-07</p>
+            <p><strong>Platform:</strong> Profiling & Psychometry Platform</p>
+            <p><strong>Architecture:</strong> Spring Boot Backend + React Frontend + MongoDB</p>
+        </div>
+    </div>
+</body>
+</html>
