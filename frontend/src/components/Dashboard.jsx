@@ -30,7 +30,7 @@ const featureCards = [
     icon: FaBrain,
     title: 'Comprehensive Profiling',
     description:
-      'Create detailed professional profiles with AI assistance. Build your complete career portfolio including skills, experience, and achievements for resumes and career planning.',
+      'Create detailed professional profiles with AI assistance and Intrest Evolution. Build your complete career portfolio including skills, experience, and achievements for resumes and career planning.',
     items: [
       'AI-powered profile builder',
       'Multiple template options',
