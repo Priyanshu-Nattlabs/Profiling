@@ -10,5 +10,6 @@ public interface AuthService {
     AuthResponse login(LoginRequest request);
     User getCurrentUser(String userId);
     AuthResponse handleGoogleOAuth(String email, String name, String googleId);
+    AuthResponse handleSomethingXToken(String email, String name, String userType);
 }
 
