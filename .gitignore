@@ -1,0 +1,83 @@
+####################################
+# Build & Dependency Artifacts
+####################################
+/build/
+/target/
+.gradle/
+node_modules/
+dist/
+coverage/
+
+####################################
+# Gradle Wrapper (keep this)
+####################################
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+
+####################################
+# Logs & Runtime Files
+####################################
+*.log
+logs/
+*.pid
+*.seed
+
+####################################
+# Environment & Secrets
+####################################
+.env
+.env.*
+!.env.example
+application-*.yml
+application-*.properties
+
+####################################
+# OS Files
+####################################
+.DS_Store
+Thumbs.db
+
+####################################
+# IntelliJ IDEA
+####################################
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+####################################
+# Eclipse / STS
+####################################
+.classpath
+.project
+.settings/
+.factorypath
+.springBeans
+.sts4-cache/
+bin/
+
+####################################
+# VS Code
+####################################
+.vscode/
+
+####################################
+# Test & Temp Files
+####################################
+tmp/
+temp/
+*.swp
+*.swo
+
+####################################
+# Frontend (React / Next / Vite)
+####################################
+.next/
+.cache/
+.eslintcache
+
+####################################
+# Optional: Ignore compiled files
+####################################
+*.class

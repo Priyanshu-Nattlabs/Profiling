@@ -113,6 +113,39 @@ public class AuthController {
         }
     }
 
+    @PostMapping("/somethingx/exchange")
+    public ResponseEntity<ApiResponse> exchangeSomethingXToken(
+            @RequestParam(required = false) String token,
+            @RequestParam String email,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String userType) {
+        log.info("SomethingX token exchange request for email={}", email);
+        
+        if (email == null || email.isBlank()) {
+            log.warn("SomethingX token exchange failed: email is required");
+            ApiResponse response = new ApiResponse("Email is required", null);
+            return ResponseEntity.badRequest().body(response);
+        }
+
+        try {
+            // Note: We trust the email/name/userType from SomethingX since it's coming from an authenticated session
+            // The token parameter is kept for future validation if needed
+            AuthResponse authResponse = authService.handleSomethingXToken(
+                email, 
+                name != null ? name : email, 
+                userType != null ? userType : "STUDENT"
+            );
+            
+            log.info("SomethingX token exchange successful for email={}", email);
+            ApiResponse response = new ApiResponse("Token exchange successful", authResponse);
+            return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(response);
+        } catch (Exception e) {
+            log.error("Error handling SomethingX token exchange for email={}: {}", email, e.getMessage(), e);
+            ApiResponse response = new ApiResponse("Token exchange failed: " + e.getMessage(), null);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
     private String extractTokenFromRequest(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
         if (bearerToken != null && bearerToken.startsWith("Bearer ")) {

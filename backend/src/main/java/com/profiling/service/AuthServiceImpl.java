@@ -128,6 +128,41 @@ public class AuthServiceImpl implements AuthService {
         return new AuthResponse(token, user.getId(), user.getEmail(), user.getName(), user.getRole());
     }
 
+    @Override
+    public AuthResponse handleSomethingXToken(String email, String name, String userType) {
+        log.info("Handling SomethingX token exchange for email={}", email);
+        Optional<User> existingUser = findByEmailSafe(email);
+        User user;
+
+        if (existingUser.isPresent()) {
+            user = existingUser.get();
+            // Update name if provided and different
+            if (name != null && !name.isBlank() && !name.equals(user.getName())) {
+                user.setName(name);
+                user = saveUser(user);
+            }
+            log.info("Existing user found userId={}", user.getId());
+        } else {
+            // Create new user for SomethingX
+            user = new User();
+            user.setEmail(email);
+            user.setName(name != null ? name : email);
+            user.setProvider("somethingx");
+            user.setPassword(""); // No password for SomethingX users
+            user = saveUser(user);
+            log.info("New user created for SomethingX userId={}", user.getId());
+        }
+
+        if (user.getRole() == null || user.getRole().isBlank()) {
+            user.setRole(DEFAULT_ROLE);
+            user = saveUser(user);
+        }
+
+        String token = jwtUtil.generateToken(user.getId(), user.getRole());
+        log.info("SomethingX token exchange successful for userId={}", user.getId());
+        return new AuthResponse(token, user.getId(), user.getEmail(), user.getName(), user.getRole());
+    }
+
     private User saveUser(User user) {
         try {
             return userRepository.save(user);

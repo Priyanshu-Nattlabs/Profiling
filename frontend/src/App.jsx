@@ -12,7 +12,7 @@ import SaarthiChatbot from './components/SaarthiChatbot';
 import ReportView from './components/ReportView';
 import Header from './components/Header';
 import SavedProfiles from './pages/SavedProfiles';
-import { submitProfile, getMyProfile, regenerateProfile, getAllMyProfiles, getProfileById } from './api';
+import { submitProfile, getMyProfile, regenerateProfile, getAllMyProfiles, getProfileById, exchangeSomethingXToken } from './api';
 
 const PHOTO_TEMPLATE_LABELS = {
   'professional-profile': 'Professional Profile',
@@ -37,6 +37,13 @@ function AppContent() {
   const { isAuthenticated, loading, login } = useAuth();
   // Restore view from localStorage or default to 'login'
   const getInitialView = () => {
+    // Check if we have SomethingX redirect params - don't set to login yet
+    const urlParams = new URLSearchParams(window.location.search);
+    const email = urlParams.get('email');
+    const token = urlParams.get('token');
+    if (email && token) {
+      return null; // Will be set after token exchange
+    }
     const savedView = localStorage.getItem('currentView');
     return savedView || 'login';
   };
@@ -51,6 +58,7 @@ function AppContent() {
   const [forceEditFromEnhance, setForceEditFromEnhance] = useState(false);
   const [isNewProfile, setIsNewProfile] = useState(false); // Track if profile is newly created
   const [hasReportData, setHasReportData] = useState(false); // Track if report data exists
+  const [isProcessingTokenExchange, setIsProcessingTokenExchange] = useState(false);
 
   // Helper function to update view and push to browser history
   const navigateToView = (view, replace = false) => {
@@ -65,16 +73,28 @@ function AppContent() {
   // Sync URL path with currentView on initial load
   useEffect(() => {
     if (isInitialLoad) {
-      const path = window.location.pathname.replace('/', '') || 'login';
-      const savedView = localStorage.getItem('currentView');
+      // Check for SomethingX redirect first - don't set view to login if we're processing token exchange
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('token');
+      const email = urlParams.get('email');
+      const isSomethingXRedirect = email && token;
       
-      // Use URL path if it's a valid view, otherwise use saved view, otherwise default to login
-      const validViews = ['login', 'start', 'form', 'template', 'cover', 'image-upload', 'display', 'enhance', 'chatbot', 'report'];
-      const urlView = validViews.includes(path) ? path : null;
-      const initialView = urlView || savedView || 'login';
-      
-      setCurrentView(initialView);
-      window.history.replaceState({ view: initialView }, '', `/${initialView}`);
+      // If it's a SomethingX redirect, don't set initial view yet - wait for token exchange
+      if (!isSomethingXRedirect) {
+        const path = window.location.pathname.replace('/', '') || 'login';
+        const savedView = localStorage.getItem('currentView');
+        
+        // Use URL path if it's a valid view, otherwise use saved view, otherwise default to login
+        const validViews = ['login', 'start', 'form', 'template', 'cover', 'image-upload', 'display', 'enhance', 'chatbot', 'report'];
+        const urlView = validViews.includes(path) ? path : null;
+        const initialView = urlView || savedView || 'login';
+        
+        setCurrentView(initialView);
+        window.history.replaceState({ view: initialView }, '', `/${initialView}`);
+      } else {
+        // Set to null initially, will be set after token exchange
+        setCurrentView(null);
+      }
       setIsInitialLoad(false);
     }
   }, [isInitialLoad]);
@@ -110,19 +130,63 @@ function AppContent() {
     }
   }, [currentView]);
 
+  // Handle token exchange and OAuth - runs once after loading completes
   useEffect(() => {
-    // Check for token or error in URL (from Google OAuth redirect)
+    // Wait for loading to complete before processing
+    if (loading || isProcessingTokenExchange) return;
+    
+    // Check for token or error in URL (from Google OAuth redirect or SomethingX)
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
     const errorParam = urlParams.get('error');
+    const email = urlParams.get('email');
+    const name = urlParams.get('name');
+    const userType = urlParams.get('userType');
     
-    // Clean URL first
+    // Check if this is a SomethingX redirect (has email param along with token)
+    const isSomethingXRedirect = email && token;
+    
+    // Handle SomethingX token exchange FIRST, before cleaning URL
+    if (isSomethingXRedirect && !isAuthenticated()) {
+      setIsProcessingTokenExchange(true);
+      console.log('Detected SomethingX redirect, exchanging token...', { email, name, userType });
+      
+      exchangeSomethingXToken(token, email, name, userType)
+        .then((result) => {
+          console.log('Token exchange result:', result);
+          if (result.success && result.data && result.data.token) {
+            // Use the Profiling token to log in
+            return login(result.data.token, null);
+          } else {
+            throw new Error('Token exchange failed: No token received. Result: ' + JSON.stringify(result));
+          }
+        })
+        .then(() => {
+          console.log('Login successful, navigating to start');
+          setIsProcessingTokenExchange(false);
+          // Clean URL after successful login
+          window.history.replaceState({}, '', '/');
+          navigateToView('start', true);
+          setError(null);
+        })
+        .catch((err) => {
+          console.error('SomethingX token exchange failed:', err);
+          setIsProcessingTokenExchange(false);
+          setError('Failed to complete login from SomethingX: ' + (err.message || 'Please try again.'));
+          // Clean URL even on error
+          window.history.replaceState({}, '', '/');
+          navigateToView('login', true);
+        });
+      return; // Don't check authentication state until login completes
+    }
+    
+    // Clean URL for other cases (OAuth, etc.)
     if (token || errorParam) {
       window.history.replaceState({}, '', '/');
     }
     
-    // Handle token from OAuth callback
-    if (token && !isAuthenticated()) {
+    // Handle token from OAuth callback (standard Profiling token)
+    if (token && !isAuthenticated() && !isSomethingXRedirect) {
       login(token, null)
         .then(() => {
           navigateToView('start', true);
@@ -143,8 +207,8 @@ function AppContent() {
       return;
     }
     
-    // After loading completes, check authentication state
-    if (!loading) {
+    // After loading completes, check authentication state (but skip if processing token exchange)
+    if (!loading && !isProcessingTokenExchange) {
       if (isAuthenticated()) {
         // If authenticated and on login page, go to start
         // But preserve other views (like 'display') to restore profile
@@ -152,14 +216,15 @@ function AppContent() {
           navigateToView('start', true);
         }
         // If on display view, the separate effect will restore the profile
-      } else {
+      } else if (currentView !== null) {
         // If not authenticated, ALWAYS show login page (block all other views)
         // Clear saved view since user is not authenticated
+        // But don't set if currentView is null (waiting for token exchange)
         localStorage.removeItem('currentView');
         navigateToView('login', true);
       }
     }
-  }, [loading, isAuthenticated, login, currentView]);
+  }, [loading, isAuthenticated, login, currentView, isProcessingTokenExchange]);
 
   // Check if report data exists in sessionStorage
   useEffect(() => {
@@ -453,8 +518,8 @@ function AppContent() {
   };
 
 
-  // Show loading screen while checking authentication
-  if (loading) {
+  // Show loading screen while checking authentication or processing token exchange
+  if (loading || isProcessingTokenExchange || currentView === null) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-gray-600">Loading...</div>

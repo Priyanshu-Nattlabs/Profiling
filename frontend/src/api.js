@@ -271,6 +271,42 @@ export const getCurrentUser = async () => {
 };
 
 /**
+ * Exchange SomethingX token for Profiling token
+ * @param {string} token - SomethingX token (optional, for future validation)
+ * @param {string} email - User email
+ * @param {string} name - User name
+ * @param {string} userType - User type (e.g., "STUDENT")
+ * @returns {Promise<{success: boolean, data?: object, error?: string}>}
+ */
+export const exchangeSomethingXToken = async (token, email, name, userType) => {
+  try {
+    console.log('Calling exchange endpoint with:', { token: token ? 'present' : 'missing', email, name, userType });
+    
+    // Use form data for POST request
+    const formData = new URLSearchParams();
+    if (token) formData.append('token', token);
+    formData.append('email', email);
+    if (name) formData.append('name', name);
+    if (userType) formData.append('userType', userType);
+
+    const response = await api.post('/api/auth/somethingx/exchange', formData.toString(), {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    });
+    
+    console.log('Exchange response:', response.data);
+    return {
+      success: true,
+      data: response.data.data
+    };
+  } catch (error) {
+    console.error('Exchange error details:', error.response?.data || error.message);
+    return handleApiError(error, 'Failed to exchange SomethingX token');
+  }
+};
+
+/**
  * Save profile as JSON file
  * @param {string} profileId - The profile ID to save
  * @returns {Promise<{success: boolean, data?: object, error?: string}>}
