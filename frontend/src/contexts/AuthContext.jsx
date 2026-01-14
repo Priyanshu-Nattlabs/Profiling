@@ -23,39 +23,64 @@ export const AuthProvider = ({ children }) => {
       const somethingxUserStr = localStorage.getItem('somethingx_auth_user');
       const currentToken = localStorage.getItem('token');
       
-      // If SomethingX is logged in and we're not, auto-login to Profiling
-      if (somethingxToken && somethingxToken !== '' && !currentToken) {
-        console.log('Detected SomethingX authentication, syncing with Profiling...');
-        const somethingxUser = somethingxUserStr ? JSON.parse(somethingxUserStr) : null;
-        
-        if (somethingxUser && somethingxUser.email) {
-          // Exchange SomethingX token for Profiling token
-          const response = await api.post('/api/auth/somethingx/exchange', new URLSearchParams({
-            token: somethingxToken,
-            email: somethingxUser.email,
-            name: somethingxUser.name || somethingxUser.email,
-            userType: somethingxUser.userType || 'STUDENT'
-          }).toString(), {
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
-            },
+      if (!somethingxToken || somethingxToken === '') {
+        return false;
+      }
+      
+      const somethingxUser = somethingxUserStr ? JSON.parse(somethingxUserStr) : null;
+      if (!somethingxUser || !somethingxUser.email) {
+        return false;
+      }
+      
+      // Check if we need to sync (no token OR different user)
+      let shouldSync = false;
+      if (!currentToken) {
+        // No current token, should sync
+        shouldSync = true;
+      } else if (user) {
+        // Current user exists, check if email is different
+        if (user.email && user.email !== somethingxUser.email) {
+          console.log('Detected different user from SomethingX, switching login...', {
+            currentEmail: user.email,
+            somethingxEmail: somethingxUser.email
           });
+          shouldSync = true;
+        }
+      } else {
+        // Have token but no user state yet, try to sync anyway
+        // This handles cases where user state hasn't loaded yet
+        shouldSync = true;
+      }
+      
+      if (shouldSync) {
+        console.log('Detected SomethingX authentication, syncing with Profiling...');
+        
+        // Exchange SomethingX token for Profiling token
+        const response = await api.post('/api/auth/somethingx/exchange', new URLSearchParams({
+          token: somethingxToken,
+          email: somethingxUser.email,
+          name: somethingxUser.name || somethingxUser.email,
+          userType: somethingxUser.userType || 'STUDENT'
+        }).toString(), {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        });
+        
+        if (response.data && response.data.data && response.data.data.token) {
+          const profilingToken = response.data.data.token;
+          setToken(profilingToken);
+          localStorage.setItem('token', profilingToken);
+          api.defaults.headers.common['Authorization'] = `Bearer ${profilingToken}`;
           
-          if (response.data && response.data.data && response.data.data.token) {
-            const profilingToken = response.data.data.token;
-            setToken(profilingToken);
-            localStorage.setItem('token', profilingToken);
-            api.defaults.headers.common['Authorization'] = `Bearer ${profilingToken}`;
-            
-            // Fetch user data
-            const userResponse = await api.get('/api/auth/me');
-            if (userResponse.data && userResponse.data.data) {
-              setUser(userResponse.data.data);
-            }
-            setLoading(false);
-            console.log('Successfully synced authentication from SomethingX');
-            return true;
+          // Fetch user data
+          const userResponse = await api.get('/api/auth/me');
+          if (userResponse.data && userResponse.data.data) {
+            setUser(userResponse.data.data);
           }
+          setLoading(false);
+          console.log('Successfully synced authentication from SomethingX');
+          return true;
         }
       }
       return false;
@@ -118,8 +143,8 @@ export const AuthProvider = ({ children }) => {
         console.log('SomethingX logged out (token cleared), logging out from Profiling...');
         logout();
       }
-      // If SomethingX token exists and we don't have a token, try to sync
-      else if (somethingxToken && somethingxToken !== '' && !currentToken) {
+      // If SomethingX token exists, try to sync (will check if user is different)
+      else if (somethingxToken && somethingxToken !== '') {
         checkSomethingXAuth();
       }
     }, 3000); // Check every 3 seconds (less frequent to avoid race conditions)
