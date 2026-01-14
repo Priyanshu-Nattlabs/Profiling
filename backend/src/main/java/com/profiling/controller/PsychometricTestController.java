@@ -18,7 +18,6 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/test")
-@CrossOrigin(origins = "*")
 @Validated
 public class PsychometricTestController {
 

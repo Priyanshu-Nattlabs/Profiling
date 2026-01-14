@@ -25,7 +25,6 @@ import jakarta.validation.Valid;
  */
 @RestController
 @RequestMapping("/api/report")
-@CrossOrigin(origins = "*")
 public class ReportController {
     
     private final ReportPdfGenerationService pdfGenerationService;

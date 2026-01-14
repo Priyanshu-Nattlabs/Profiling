@@ -22,7 +22,6 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/test/proctoring")
-@CrossOrigin(origins = "*")
 @Validated
 public class ProctoringController {
     

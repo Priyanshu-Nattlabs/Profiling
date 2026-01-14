@@ -36,7 +36,6 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/psychometric/sessions")
-@CrossOrigin(origins = "*")
 @Validated
 public class PsychometricSessionController {
 
