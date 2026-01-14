@@ -16,16 +16,156 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [loading, setLoading] = useState(true);
 
+  // Check for SomethingX authentication and sync
+  const checkSomethingXAuth = async () => {
+    try {
+      const somethingxToken = localStorage.getItem('somethingx_auth_token');
+      const somethingxUserStr = localStorage.getItem('somethingx_auth_user');
+      const currentToken = localStorage.getItem('token');
+      
+      // If SomethingX is logged in and we're not, auto-login to Profiling
+      if (somethingxToken && somethingxToken !== '' && !currentToken) {
+        console.log('Detected SomethingX authentication, syncing with Profiling...');
+        const somethingxUser = somethingxUserStr ? JSON.parse(somethingxUserStr) : null;
+        
+        if (somethingxUser && somethingxUser.email) {
+          // Exchange SomethingX token for Profiling token
+          const response = await api.post('/api/auth/somethingx/exchange', new URLSearchParams({
+            token: somethingxToken,
+            email: somethingxUser.email,
+            name: somethingxUser.name || somethingxUser.email,
+            userType: somethingxUser.userType || 'STUDENT'
+          }).toString(), {
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+          });
+          
+          if (response.data && response.data.data && response.data.data.token) {
+            const profilingToken = response.data.data.token;
+            setToken(profilingToken);
+            localStorage.setItem('token', profilingToken);
+            api.defaults.headers.common['Authorization'] = `Bearer ${profilingToken}`;
+            
+            // Fetch user data
+            const userResponse = await api.get('/api/auth/me');
+            if (userResponse.data && userResponse.data.data) {
+              setUser(userResponse.data.data);
+            }
+            setLoading(false);
+            console.log('Successfully synced authentication from SomethingX');
+            return true;
+          }
+        }
+      }
+      return false;
+    } catch (error) {
+      console.error('Error checking SomethingX auth:', error);
+      return false;
+    }
+  };
+
+  // Track if we've initialized to prevent premature logout checks
+  const [initialized, setInitialized] = useState(false);
+
+  // Listen for storage events (logout from SomethingX)
+  useEffect(() => {
+    // Mark as initialized after a short delay to prevent false logout on redirect
+    const initTimer = setTimeout(() => {
+      setInitialized(true);
+    }, 3000); // Wait 3 seconds after load before checking for logout
+
+    const handleStorageChange = (e) => {
+      // Only process logout events if initialized
+      if (!initialized) return;
+      
+      if (e.key === 'somethingx_auth_token') {
+        const somethingxToken = localStorage.getItem('somethingx_auth_token');
+        const currentToken = localStorage.getItem('token');
+        
+        // Only logout if token was explicitly cleared (empty string) and we have a Profiling token
+        // Don't logout if token is missing (might be navigation/timing issue)
+        if (somethingxToken === '' && currentToken) {
+          console.log('SomethingX token explicitly cleared, logging out from Profiling...');
+          logout();
+        } else if (somethingxToken && somethingxToken !== '') {
+          // Token exists, sync auth
+          checkSomethingXAuth();
+        }
+      } else if (e.key === 'somethingx_logout') {
+        // Explicit logout event from SomethingX
+        const currentToken = localStorage.getItem('token');
+        if (currentToken && initialized) {
+          console.log('SomethingX logout event detected, logging out from Profiling...');
+          logout();
+        }
+      }
+    };
+
+    // Listen for storage events (cross-tab communication)
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also check periodically for changes (same-tab), but only after initialization
+    const intervalId = setInterval(() => {
+      if (!initialized) return;
+      
+      const currentToken = localStorage.getItem('token');
+      const somethingxToken = localStorage.getItem('somethingx_auth_token');
+      
+      // Only logout if token is explicitly empty string (cleared), not just missing
+      // This prevents logout during navigation or timing issues
+      if (somethingxToken === '' && currentToken) {
+        console.log('SomethingX logged out (token cleared), logging out from Profiling...');
+        logout();
+      }
+      // If SomethingX token exists and we don't have a token, try to sync
+      else if (somethingxToken && somethingxToken !== '' && !currentToken) {
+        checkSomethingXAuth();
+      }
+    }, 3000); // Check every 3 seconds (less frequent to avoid race conditions)
+
+    return () => {
+      clearTimeout(initTimer);
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(intervalId);
+    };
+  }, [initialized]);
+
   // Set token in axios headers and restore session on mount
   useEffect(() => {
-    if (token) {
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      // Try to restore user session
-      restoreSession();
-    } else {
-      delete api.defaults.headers.common['Authorization'];
-      setLoading(false);
-    }
+    const initializeAuth = async () => {
+      // First check for SomethingX auth before checking local token
+      const synced = await checkSomethingXAuth();
+      
+      const currentToken = localStorage.getItem('token');
+      if (currentToken) {
+        api.defaults.headers.common['Authorization'] = `Bearer ${currentToken}`;
+        // Try to restore user session
+        await restoreSession();
+      } else {
+        // If no token and SomethingX has auth, wait a bit and check again
+        const somethingxToken = localStorage.getItem('somethingx_auth_token');
+        if (somethingxToken && somethingxToken !== '' && !synced) {
+          // Wait a moment and try syncing again (might be timing issue during redirect)
+          setTimeout(async () => {
+            await checkSomethingXAuth();
+            const retryToken = localStorage.getItem('token');
+            if (retryToken) {
+              api.defaults.headers.common['Authorization'] = `Bearer ${retryToken}`;
+              await restoreSession();
+            } else {
+              delete api.defaults.headers.common['Authorization'];
+              setLoading(false);
+            }
+          }, 1000);
+        } else {
+          delete api.defaults.headers.common['Authorization'];
+          setLoading(false);
+        }
+      }
+    };
+    
+    initializeAuth();
   }, []);
 
   const restoreSession = async () => {
@@ -82,6 +222,7 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     localStorage.removeItem('token');
     delete api.defaults.headers.common['Authorization'];
+    // Note: We don't clear somethingx_auth_token here because that's managed by SomethingX
   };
 
   const isAuthenticated = () => {

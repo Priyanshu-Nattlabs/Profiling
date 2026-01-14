@@ -133,7 +133,7 @@ function AppContent() {
   // Handle token exchange and OAuth - runs once after loading completes
   useEffect(() => {
     // Wait for loading to complete before processing
-    if (loading || isProcessingTokenExchange) return;
+    if (loading) return;
     
     // Check for token or error in URL (from Google OAuth redirect or SomethingX)
     const urlParams = new URLSearchParams(window.location.search);
@@ -147,7 +147,7 @@ function AppContent() {
     const isSomethingXRedirect = email && token;
     
     // Handle SomethingX token exchange FIRST, before cleaning URL
-    if (isSomethingXRedirect && !isAuthenticated()) {
+    if (isSomethingXRedirect && !isAuthenticated() && !isProcessingTokenExchange) {
       setIsProcessingTokenExchange(true);
       console.log('Detected SomethingX redirect, exchanging token...', { email, name, userType });
       
@@ -163,19 +163,24 @@ function AppContent() {
         })
         .then(() => {
           console.log('Login successful, navigating to start');
-          setIsProcessingTokenExchange(false);
           // Clean URL after successful login
           window.history.replaceState({}, '', '/');
-          navigateToView('start', true);
+          // Set view directly to ensure it updates immediately
+          setCurrentView('start');
+          window.history.replaceState({ view: 'start' }, '', '/start');
+          // Clear processing flag after a short delay to allow view to render
+          setTimeout(() => {
+            setIsProcessingTokenExchange(false);
+          }, 50);
           setError(null);
         })
         .catch((err) => {
           console.error('SomethingX token exchange failed:', err);
-          setIsProcessingTokenExchange(false);
           setError('Failed to complete login from SomethingX: ' + (err.message || 'Please try again.'));
           // Clean URL even on error
           window.history.replaceState({}, '', '/');
-          navigateToView('login', true);
+          setCurrentView('login');
+          setIsProcessingTokenExchange(false);
         });
       return; // Don't check authentication state until login completes
     }
@@ -210,9 +215,8 @@ function AppContent() {
     // After loading completes, check authentication state (but skip if processing token exchange)
     if (!loading && !isProcessingTokenExchange) {
       if (isAuthenticated()) {
-        // If authenticated and on login page, go to start
-        // But preserve other views (like 'display') to restore profile
-        if (currentView === 'login') {
+        // If authenticated and on login page or null view, go to start
+        if (currentView === 'login' || currentView === null) {
           navigateToView('start', true);
         }
         // If on display view, the separate effect will restore the profile
@@ -518,8 +522,35 @@ function AppContent() {
   };
 
 
+  // Set default view if null and not processing
+  useEffect(() => {
+    if (currentView === null && !isProcessingTokenExchange && !loading) {
+      setCurrentView('login');
+    }
+  }, [currentView, isProcessingTokenExchange, loading]);
+
+  // Navigate to start when authentication completes after token exchange
+  useEffect(() => {
+    if (isAuthenticated() && isProcessingTokenExchange && currentView === null) {
+      console.log('Auth completed, setting view to start');
+      setCurrentView('start');
+      window.history.replaceState({ view: 'start' }, '', '/start');
+      setIsProcessingTokenExchange(false);
+    }
+  }, [isAuthenticated, isProcessingTokenExchange, currentView]);
+
   // Show loading screen while checking authentication or processing token exchange
-  if (loading || isProcessingTokenExchange || currentView === null) {
+  // Only show loading if view is null or we're still processing
+  if (loading || (isProcessingTokenExchange && currentView === null)) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-600">Loading...</div>
+      </div>
+    );
+  }
+
+  // If we have a view set, show it even if still processing (to allow transition)
+  if (currentView === null) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-gray-600">Loading...</div>
@@ -528,7 +559,22 @@ function AppContent() {
   }
 
   // CRITICAL: Show login page FIRST if not authenticated - block everything else
-  if (!isAuthenticated()) {
+  // But only if we're not checking SomethingX auth and not processing
+  if (!isAuthenticated() && !isProcessingTokenExchange && currentView !== null && !loading) {
+    // Check if SomethingX might be authenticating
+    const somethingxToken = localStorage.getItem('somethingx_auth_token');
+    const somethingxUserStr = localStorage.getItem('somethingx_auth_user');
+    
+    // If SomethingX is authenticated, auto-login (AuthContext should handle this, but show loading while waiting)
+    if (somethingxToken && somethingxToken !== '' && somethingxUserStr && currentView === 'login') {
+      // Wait a moment for AuthContext to sync, then show loading
+      return (
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-gray-600">Syncing authentication...</div>
+        </div>
+      );
+    }
+    
     // Pass error if exists (e.g., from OAuth failure)
     return <LoginPage initialError={error} />;
   }
