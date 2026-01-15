@@ -34,7 +34,7 @@ const handleGoogleCallback = () => {
 };
 
 function AppContent() {
-  const { isAuthenticated, loading, login } = useAuth();
+  const { isAuthenticated, loading, login, user } = useAuth();
   // Restore view from localStorage or default to 'login'
   const getInitialView = () => {
     // Check if we have SomethingX redirect params - don't set to login yet
@@ -146,10 +146,23 @@ function AppContent() {
     // Check if this is a SomethingX redirect (has email param along with token)
     const isSomethingXRedirect = email && token;
     
+    // Check if we should process SomethingX redirect (not authenticated OR different user)
+    const shouldProcessSomethingXRedirect = isSomethingXRedirect && !isProcessingTokenExchange && (
+      !isAuthenticated() || 
+      (user && user.email && user.email !== email)
+    );
+    
     // Handle SomethingX token exchange FIRST, before cleaning URL
-    if (isSomethingXRedirect && !isAuthenticated() && !isProcessingTokenExchange) {
+    if (shouldProcessSomethingXRedirect) {
       setIsProcessingTokenExchange(true);
-      console.log('Detected SomethingX redirect, exchanging token...', { email, name, userType });
+      if (user && user.email && user.email !== email) {
+        console.log('Detected different user from SomethingX redirect, switching login...', {
+          currentEmail: user.email,
+          somethingxEmail: email
+        });
+      } else {
+        console.log('Detected SomethingX redirect, exchanging token...', { email, name, userType });
+      }
       
       exchangeSomethingXToken(token, email, name, userType)
         .then((result) => {
@@ -228,7 +241,7 @@ function AppContent() {
         navigateToView('login', true);
       }
     }
-  }, [loading, isAuthenticated, login, currentView, isProcessingTokenExchange]);
+  }, [loading, isAuthenticated, login, currentView, isProcessingTokenExchange, user]);
 
   // Check if report data exists in sessionStorage
   useEffect(() => {

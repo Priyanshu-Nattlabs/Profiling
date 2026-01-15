@@ -14,12 +14,16 @@ public class WebConfig implements WebMvcConfigurer {
     @Value("${file.upload.dir:./uploads}")
     private String uploadDir;
 
+    @Value("${app.frontend.url:http://localhost:4000}")
+    private String frontendUrl;
+
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOrigins("*")
+                .allowedOrigins(frontendUrl)
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
+                .allowCredentials(true)
                 .exposedHeaders("Authorization");
     }
 

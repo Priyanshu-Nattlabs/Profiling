@@ -18,9 +18,13 @@ coverage/
 # Logs & Runtime Files
 ####################################
 *.log
+*.log.*
 logs/
+**/logs/
 *.pid
 *.seed
+*.gz
+*.zip
 
 ####################################
 # Environment & Secrets
@@ -28,8 +32,20 @@ logs/
 .env
 .env.*
 !.env.example
+.env.local
+.env.production
+.env.development
+*.key
+*.pem
+*.p12
+*.jks
+*.keystore
+secrets/
+credentials/
 application-*.yml
 application-*.properties
+!application.properties
+!application.yml
 
 ####################################
 # OS Files

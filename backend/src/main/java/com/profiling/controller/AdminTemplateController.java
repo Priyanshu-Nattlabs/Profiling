@@ -33,7 +33,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/templates")
-@CrossOrigin(origins = "*")
 public class AdminTemplateController {
 
     private final TemplateService templateService;

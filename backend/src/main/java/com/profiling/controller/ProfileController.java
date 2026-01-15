@@ -42,7 +42,6 @@ import org.springframework.web.bind.annotation.RequestPart;
 
 @RestController
 @RequestMapping("/api/profiles")
-@CrossOrigin(origins = "*")
 public class ProfileController {
 
     private final ProfileService profileService;

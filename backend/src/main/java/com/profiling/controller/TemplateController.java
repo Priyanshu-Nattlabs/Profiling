@@ -32,7 +32,6 @@ import com.profiling.template.TemplateService;
 
 @RestController
 @RequestMapping("/api/templates")
-@CrossOrigin(origins = "*")
 public class TemplateController {
 
     private final TemplateService templateService;

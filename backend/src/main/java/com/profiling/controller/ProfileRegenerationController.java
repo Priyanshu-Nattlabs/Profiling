@@ -21,7 +21,6 @@ import com.profiling.service.ProfileService;
 
 @RestController
 @RequestMapping("/api/profile")
-@CrossOrigin(origins = "*")
 public class ProfileRegenerationController {
 
     private final ProfileService profileService;

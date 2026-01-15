@@ -19,7 +19,6 @@ import java.util.stream.Collectors;
  */
 @RestController
 @RequestMapping("/api/psychometric/saved-reports")
-@CrossOrigin(origins = "*")
 public class SavedPsychometricReportController {
 
     private final SavedPsychometricReportService savedReportService;
